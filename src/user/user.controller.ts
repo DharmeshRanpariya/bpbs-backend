@@ -9,15 +9,34 @@ import {
     UseInterceptors,
     UploadedFile,
     BadRequestException,
+    UseGuards,
+    UnauthorizedException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { multerOptions } from '../common/utils/multer-options.util';
+import { AuthService } from '../auth/auth.service';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
+import { RolesGuard } from '../common/guards/roles.guard';
+import { Roles } from '../common/decorators/roles.decorator';
+import { Role } from '../common/enums/role.enum';
 
 @Controller('users')
 export class UserController {
-    constructor(private readonly userService: UserService) { }
+    constructor(
+        private readonly userService: UserService,
+        private readonly authService: AuthService,
+    ) { }
+
+    @Post('login')
+    async login(@Body() loginDto: any) {
+        const user = await this.authService.validateUser(loginDto.username, loginDto.password);
+        if (!user) {
+            throw new UnauthorizedException('Invalid credentials');
+        }
+        return this.authService.login(user);
+    }
 
     @Post()
     @UseInterceptors(FileInterceptor('profilePhoto', multerOptions))
@@ -33,6 +52,8 @@ export class UserController {
     }
 
     @Get()
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles(Role.ADMIN)
     async findAll() {
         return this.userService.findAll();
     }
@@ -57,6 +78,8 @@ export class UserController {
     }
 
     @Delete(':id')
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles(Role.ADMIN)
     async remove(@Param('id') id: string) {
         return this.userService.remove(id);
     }
