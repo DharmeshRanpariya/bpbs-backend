@@ -11,6 +11,7 @@ import { SchoolModule } from './school/school.module';
 import { VisitModule } from './visit/visit.module';
 import { CategoryModule } from './category/category.module';
 import { BookModule } from './book/book.module';
+import { OrderModule } from './order/order.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { BookModule } from './book/book.module';
     VisitModule,
     CategoryModule,
     BookModule,
+    OrderModule,
   ],
   controllers: [AppController],
   providers: [AppService],
