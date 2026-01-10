@@ -1,0 +1,82 @@
+import {
+    Controller,
+    Get,
+    Post,
+    Body,
+    Param,
+    Put,
+    Delete,
+    UseGuards,
+    UseInterceptors,
+    UploadedFile,
+} from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { OrderService } from './order.service';
+import { CreateOrderDto } from './dto/create-order.dto';
+import { UpdateOrderDto } from './dto/update-order.dto';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
+import { multerOptions } from '../common/utils/multer-options.util';
+
+@Controller('order')
+@UseGuards(JwtAuthGuard)
+export class OrderController {
+    constructor(private readonly orderService: OrderService) { }
+
+    @Post()
+    @UseInterceptors(FileInterceptor('image', multerOptions))
+    create(
+        @UploadedFile() file: Express.Multer.File,
+        @Body() createOrderDto: CreateOrderDto,
+    ) {
+        let imagePath = '';
+        if (file) {
+            imagePath = `/uploads/${file.filename}`;
+        }
+
+        // Special handling for orderItems if sent as string (multipart/form-data)
+        if (typeof createOrderDto.orderItems === 'string') {
+            try {
+                createOrderDto.orderItems = JSON.parse(createOrderDto.orderItems);
+            } catch (e) { }
+        }
+
+        return this.orderService.create(createOrderDto, imagePath);
+    }
+
+    @Get()
+    findAll() {
+        return this.orderService.findAll();
+    }
+
+    @Get(':id')
+    findOne(@Param('id') id: string) {
+        return this.orderService.findOne(id);
+    }
+
+    @Put(':id')
+    @UseInterceptors(FileInterceptor('image', multerOptions))
+    update(
+        @Param('id') id: string,
+        @UploadedFile() file: Express.Multer.File,
+        @Body() updateOrderDto: UpdateOrderDto,
+    ) {
+        let imagePath: string | undefined = undefined;
+        if (file) {
+            imagePath = `/uploads/${file.filename}`;
+        }
+
+        // Special handling for orderItems if sent as string (multipart/form-data)
+        if (typeof updateOrderDto.orderItems === 'string') {
+            try {
+                updateOrderDto.orderItems = JSON.parse(updateOrderDto.orderItems);
+            } catch (e) { }
+        }
+
+        return this.orderService.update(id, updateOrderDto, imagePath);
+    }
+
+    @Delete(':id')
+    remove(@Param('id') id: string) {
+        return this.orderService.remove(id);
+    }
+}
