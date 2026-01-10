@@ -9,6 +9,8 @@ import { UserModule } from './user/user.module';
 import { AuthModule } from './auth/auth.module';
 import { SchoolModule } from './school/school.module';
 import { VisitModule } from './visit/visit.module';
+import { CategoryModule } from './category/category.module';
+import { BookModule } from './book/book.module';
 
 @Module({
   imports: [
@@ -25,6 +27,8 @@ import { VisitModule } from './visit/visit.module';
     UserModule,
     SchoolModule,
     VisitModule,
+    CategoryModule,
+    BookModule,
   ],
   controllers: [AppController],
   providers: [AppService],
