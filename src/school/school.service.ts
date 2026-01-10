@@ -115,4 +115,21 @@ export class SchoolService {
             };
         }
     }
+
+    async findByZone(zone: string) {
+        try {
+            const data = await this.schoolModel.find({ zone }).exec();
+            return {
+                success: true,
+                message: 'Schools fetched by zone successfully',
+                data,
+            };
+        } catch (error) {
+            return {
+                success: false,
+                message: error.message || 'Error occurred while fetching schools by zone',
+                data: [],
+            };
+        }
+    }
 }

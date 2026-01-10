@@ -20,7 +20,12 @@ export class AuthService {
     }
 
     async login(user: any) {
-        const payload = { username: user.username, sub: user._id, role: user.role };
+        const payload = {
+            username: user.username,
+            sub: user._id,
+            role: user.role,
+            assignedZone: user.assignedZone
+        };
         return {
             success: true,
             message: 'Login successful',
