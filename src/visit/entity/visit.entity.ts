@@ -34,7 +34,6 @@ export class Visit extends Document {
     scheduleDate: Date;
 
     @Prop({
-        required: true,
         enum: ['pending', 'rescheduled', 'completed'],
         default: 'pending'
     })

@@ -19,6 +19,11 @@ export class SchoolController {
         return this.schoolService.findAll();
     }
 
+    @Get('zone/:zone')
+    findByZone(@Param('zone') zone: string) {
+        return this.schoolService.findByZone(zone);
+    }
+
     @Get(':id')
     findOne(@Param('id') id: string) {
         return this.schoolService.findOne(id);

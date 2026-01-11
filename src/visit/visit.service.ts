@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { Visit } from './entity/visit.entity';
 import { CreateVisitDto } from './dto/create-visit.dto';
 import { UpdateVisitDto } from './dto/update-visit.dto';
@@ -32,7 +32,36 @@ export class VisitService {
 
     async create(createVisitDto: CreateVisitDto) {
         try {
-            // Apply status logic if visitDetails are provided
+            // Check if a visit with same userId and schoolId already exists
+            const existingVisit = await this.visitModel.findOne({
+                userId: createVisitDto.userId,
+                schoolId: createVisitDto.schoolId
+            }).exec();
+
+            if (existingVisit) {
+                // If it exists, append new visitDetails
+                if (createVisitDto.visitDetails && createVisitDto.visitDetails.length > 0) {
+                    const mappedDetails = createVisitDto.visitDetails.map(detail => ({
+                        ...detail,
+                        date: new Date(detail.date),
+                        nextVisitDate: detail.nextVisitDate ? new Date(detail.nextVisitDate) : undefined
+                    }));
+                    existingVisit.visitDetails.push(...(mappedDetails as any));
+                }
+
+                // Update scheduleDate and status
+                existingVisit.scheduleDate = new Date(createVisitDto.scheduleDate);
+                existingVisit.status = createVisitDto.status || this.calculateStatus(existingVisit.visitDetails);
+
+                const data = await existingVisit.save();
+                return {
+                    success: true,
+                    message: 'Visit updated with new details successfully',
+                    data,
+                };
+            }
+
+            // Apply status logic for new visit
             let status = 'pending';
             if (createVisitDto.visitDetails && createVisitDto.visitDetails.length > 0) {
                 status = this.calculateStatus(createVisitDto.visitDetails);
@@ -52,7 +81,7 @@ export class VisitService {
         } catch (error) {
             return {
                 success: false,
-                message: error.message || 'Error occurred while creating visit',
+                message: error.message || 'Error occurred while creating/updating visit',
                 data: null,
             };
         }
@@ -249,31 +278,75 @@ export class VisitService {
                 };
             }
 
-            let schoolIds = schoolResponse.data.map((school: any) => school._id);
+            let schools = schoolResponse.data;
 
-            // Filter schoolIds by schoolName if provided
+            // Filter schools by name if provided
             if (schoolName) {
-                schoolIds = schoolResponse.data
-                    .filter((school: any) =>
-                        school.schoolName.toLowerCase().includes(schoolName.toLowerCase()))
-                    .map((school: any) => school._id);
+                schools = schools.filter((school: any) =>
+                    school.schoolName.toLowerCase().includes(schoolName.toLowerCase())
+                );
             }
 
-            const query: any = { schoolId: { $in: schoolIds } };
-            if (status) {
-                query.status = status;
-            }
+            const schoolIdsStrings = schools.map((school: any) => school._id.toString());
+            const schoolIdsObjects = schoolIdsStrings.map(id => new Types.ObjectId(id));
 
-            // 2. Get all visits for these schools
-            const data = await this.visitModel.find(query)
+            console.log('Searching visits for schoolIds:', schoolIdsStrings);
+
+            // 2. Get ALL visits for these schools
+            // We search with both string and ObjectId formats to be 100% sure
+            const visitQuery: any = {
+                schoolId: { $in: [...schoolIdsStrings, ...schoolIdsObjects] }
+            };
+
+            const visits = await this.visitModel.find(visitQuery)
                 .populate('userId', 'username email')
-                .populate('schoolId', 'schoolName address zone')
                 .exec();
+
+            console.log(`Found ${visits.length} total visits for these schools`);
+            if (visits.length > 0) {
+                console.log('Sample visit schoolId type:', typeof visits[0].schoolId, visits[0].schoolId);
+            }
+
+            // 3. Map visits to schools
+            const data = schools.map((school: any) => {
+                const schoolObj = school.toObject ? school.toObject() : school;
+                const schoolIdStr = schoolObj._id.toString();
+
+                // Find all visits for this specific school
+                const schoolVisits = visits.filter((visit: any) => {
+                    const visitSchoolId = visit.schoolId;
+                    if (!visitSchoolId) return false;
+
+                    // Direct string comparison of the IDs
+                    return visitSchoolId.toString() === schoolIdStr;
+                });
+
+                // Determine school status: use the status of the most recently updated visit.
+                let currentStatus = 'pending';
+                if (schoolVisits.length > 0) {
+                    const sortedVisits = [...schoolVisits].sort((a: any, b: any) =>
+                        new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+                    );
+                    currentStatus = sortedVisits[0].status;
+                }
+
+                return {
+                    ...schoolObj,
+                    visits: schoolVisits,
+                    currentStatus
+                };
+            });
+
+            // 4. Apply status filter in memory if provided
+            const finalData = status
+                ? data.filter(item => item.currentStatus === status)
+                : data;
 
             return {
                 success: true,
-                message: `Visits for zone ${assignedZone} fetched successfully`,
-                data,
+                message: `Schools and visits for zone ${assignedZone} fetched successfully`,
+                visitCount: visits.length,
+                data: finalData,
             };
         } catch (error) {
             return {
