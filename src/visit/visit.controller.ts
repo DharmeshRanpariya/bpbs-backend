@@ -18,6 +18,7 @@ export class VisitController {
         @Query('status') status: string
     ) {
         const assignedZone = req.user.assignedZone;
+        console.log(assignedZone, req.user);
         return this.visitService.findByAssignedZone(assignedZone, schoolName, status);
     }
 
@@ -29,18 +30,19 @@ export class VisitController {
     ) {
         if (file) {
             const photoPath = `/uploads/${file.filename}`;
-            // If visitDetails exists, add photo to the first one
-            if (createVisitDto.visitDetails && createVisitDto.visitDetails.length > 0) {
-                createVisitDto.visitDetails[0].photo = photoPath;
-            } else if (typeof createVisitDto.visitDetails === 'string') {
-                // In case class-transformer hasn't parsed it (though it should with validation pipe)
+
+            // In multipart/form-data, arrays are often sent as JSON strings
+            if (typeof createVisitDto.visitDetails === 'string') {
                 try {
-                    const details = JSON.parse(createVisitDto.visitDetails);
-                    if (details.length > 0) {
-                        details[0].photo = photoPath;
-                        createVisitDto.visitDetails = details;
-                    }
-                } catch (e) { }
+                    createVisitDto.visitDetails = JSON.parse(createVisitDto.visitDetails);
+                } catch (e) {
+                    // If parsing fails, it will remain a string and fail the Array.isArray check
+                }
+            }
+
+            // If visitDetails exists and is an array, add photo to the first one
+            if (Array.isArray(createVisitDto.visitDetails) && createVisitDto.visitDetails.length > 0) {
+                createVisitDto.visitDetails[0].photo = photoPath;
             }
         }
         return this.visitService.create(createVisitDto);
@@ -115,27 +117,21 @@ export class VisitController {
     ) {
         if (file) {
             const photoPath = `/uploads/${file.filename}`;
-<<<<<<< Updated upstream
-            if (updateVisitDto.visitDetails && updateVisitDto.visitDetails.length > 0) {
-=======
+
+            // In multipart/form-data, arrays are often sent as JSON strings
             if (typeof updateVisitDto.visitDetails === 'string') {
+            if (updateVisitDto.visitDetails && updateVisitDto.visitDetails.length > 0) {
+                updateVisitDto.visitDetails[0].photo = photoPath;
+            } else if (typeof updateVisitDto.visitDetails === 'string') {
                 try {
                     updateVisitDto.visitDetails = JSON.parse(updateVisitDto.visitDetails);
                 } catch (e) {
+                    // If parsing fails, it will remain a string and fail the Array.isArray check
                 }
             }
 
             if (Array.isArray(updateVisitDto.visitDetails) && updateVisitDto.visitDetails.length > 0) {
->>>>>>> Stashed changes
                 updateVisitDto.visitDetails[0].photo = photoPath;
-            } else if (typeof updateVisitDto.visitDetails === 'string') {
-                try {
-                    const details = JSON.parse(updateVisitDto.visitDetails);
-                    if (details.length > 0) {
-                        details[0].photo = photoPath;
-                        updateVisitDto.visitDetails = details;
-                    }
-                } catch (e) { }
             }
         }
         return this.visitService.update(id, updateVisitDto);

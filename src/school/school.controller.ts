@@ -19,8 +19,6 @@ export class SchoolController {
         return this.schoolService.findAll(search);
     }
 
-<<<<<<< Updated upstream
-=======
     @Get('zone/:zone')
     findByZone(
         @Param('zone') zone: string,
@@ -29,7 +27,6 @@ export class SchoolController {
         return this.schoolService.findByZone(zone, search);
     }
 
->>>>>>> Stashed changes
     @Get(':id')
     findOne(@Param('id') id: string) {
         return this.schoolService.findOne(id);
