@@ -120,9 +120,6 @@ export class VisitController {
 
             // In multipart/form-data, arrays are often sent as JSON strings
             if (typeof updateVisitDto.visitDetails === 'string') {
-            if (updateVisitDto.visitDetails && updateVisitDto.visitDetails.length > 0) {
-                updateVisitDto.visitDetails[0].photo = photoPath;
-            } else if (typeof updateVisitDto.visitDetails === 'string') {
                 try {
                     updateVisitDto.visitDetails = JSON.parse(updateVisitDto.visitDetails);
                 } catch (e) {
@@ -130,6 +127,7 @@ export class VisitController {
                 }
             }
 
+            // If visitDetails exists and is an array, add photo to the first one
             if (Array.isArray(updateVisitDto.visitDetails) && updateVisitDto.visitDetails.length > 0) {
                 updateVisitDto.visitDetails[0].photo = photoPath;
             }

@@ -226,9 +226,6 @@ export class VisitService {
                 }
 
                 query.schoolId = { $in: matchedSchoolIds };
-                console.log(matchedSchoolIds);
-                const data = await this.visitModel.findOne({ schoolId: { $in: matchedSchoolIds } });
-                console.log(data);
             }
 
             const data = await this.visitModel.find(query)
@@ -309,12 +306,6 @@ export class VisitService {
                 schools = schools.filter((school: any) =>
                     school.schoolName.toLowerCase().includes(schoolName.toLowerCase())
                 );
-            // Filter schoolIds by schoolName if provided
-            if (schoolName) {
-                schoolIds = schoolResponse.data
-                    .filter((school: any) =>
-                        school.schoolName.toLowerCase().includes(schoolName.toLowerCase()))
-                    .map((school: any) => school._id);
             }
 
             const schoolIdsStrings = schools.map((school: any) => school._id.toString());
