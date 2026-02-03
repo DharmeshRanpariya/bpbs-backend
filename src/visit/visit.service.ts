@@ -5,12 +5,14 @@ import { Visit } from './entity/visit.entity';
 import { CreateVisitDto } from './dto/create-visit.dto';
 import { UpdateVisitDto } from './dto/update-visit.dto';
 import { SchoolService } from '../school/school.service';
+import { OrderService } from '../order/order.service';
 
 @Injectable()
 export class VisitService {
     constructor(
         @InjectModel(Visit.name) private visitModel: Model<Visit>,
-        private readonly schoolService: SchoolService
+        private readonly schoolService: SchoolService,
+        private readonly orderService: OrderService
     ) { }
 
     private calculateStatus(visitDetails: any[]) {
@@ -96,12 +98,9 @@ export class VisitService {
             }
 
             if (schoolName) {
-                // Find schools matching the name
-                const schoolResponse = await this.schoolService.findAll();
-                const matchedSchoolIds = (schoolResponse.data || [])
-                    .filter((school: any) =>
-                        school.schoolName.toLowerCase().includes(schoolName.toLowerCase()))
-                    .map((school: any) => school._id);
+                // Find schools matching the name using optimized search
+                const schoolResponse = await this.schoolService.findAll(schoolName);
+                const matchedSchoolIds = (schoolResponse.data || []).map((school: any) => school._id);
 
                 query.schoolId = { $in: matchedSchoolIds };
             }
@@ -206,9 +205,33 @@ export class VisitService {
         }
     }
 
-    async findByUser(userId: string) {
+    async findByUser(userId: string, schoolName?: string, status?: string) {
         try {
-            const data = await this.visitModel.find({ userId })
+            const query: any = { userId };
+
+            if (status) {
+                query.status = status;
+            }
+
+            if (schoolName) {
+                const schoolResponse = await this.schoolService.findAll(schoolName);
+                const matchedSchoolIds = (schoolResponse.data || []).map((school: any) => school._id.toString());
+
+                if (matchedSchoolIds.length === 0) {
+                    return {
+                        success: true,
+                        message: 'No visits found',
+                        data: [],
+                    };
+                }
+
+                query.schoolId = { $in: matchedSchoolIds };
+                console.log(matchedSchoolIds);
+                const data = await this.visitModel.findOne({ schoolId: { $in: matchedSchoolIds } });
+                console.log(data);
+            }
+
+            const data = await this.visitModel.find(query)
                 .populate('userId', 'username email')
                 .populate('schoolId', 'schoolName address')
                 .exec();
@@ -248,9 +271,10 @@ export class VisitService {
 
     async findByUserAndSchool(userId: string, schoolId: string) {
         try {
+            console.log(userId, schoolId);
             const data = await this.visitModel.find({ userId, schoolId })
                 .populate('userId', 'username email')
-                .populate('schoolId', 'schoolName address')
+                .populate('schoolId')
                 .exec();
             return {
                 success: true,
@@ -285,6 +309,12 @@ export class VisitService {
                 schools = schools.filter((school: any) =>
                     school.schoolName.toLowerCase().includes(schoolName.toLowerCase())
                 );
+            // Filter schoolIds by schoolName if provided
+            if (schoolName) {
+                schoolIds = schoolResponse.data
+                    .filter((school: any) =>
+                        school.schoolName.toLowerCase().includes(schoolName.toLowerCase()))
+                    .map((school: any) => school._id);
             }
 
             const schoolIdsStrings = schools.map((school: any) => school._id.toString());
@@ -353,6 +383,111 @@ export class VisitService {
                 success: false,
                 message: error.message || 'Error occurred while fetching visits by zone',
                 data: null,
+            };
+        }
+    }
+
+    async findUserVisitsByMonth(userId: string, year: number, month: number) {
+        try {
+            const startDate = new Date(year, month - 1, 1);
+            const endDate = new Date(year, month, 0, 23, 59, 59, 999);
+
+            const data = await this.visitModel.find({
+                userId: new Types.ObjectId(userId),
+                scheduleDate: { $gte: startDate, $lte: endDate }
+            })
+                .populate('userId', 'username email')
+                .populate('schoolId', 'schoolName address')
+                .exec();
+
+            return {
+                success: true,
+                message: 'Visits fetched successfully for the month',
+                data,
+            };
+        } catch (error) {
+            return {
+                success: false,
+                message: error.message || 'Error occurred while fetching visits by month',
+                data: null,
+            };
+        }
+    }
+
+    async getVisitSummaryWithStats(schoolId: string, visitId: string | undefined, userId: string) {
+        try {
+            // 2. Fetch Visit Details
+            let visit;
+            if (visitId) {
+                visit = await this.visitModel.findById(visitId).exec();
+            } else if (schoolId && userId) {
+                // If visitId is not provided, try to find the visit for this user and school
+                visit = await this.visitModel.findOne({ userId, schoolId }).exec();
+            }
+
+            if (!visit) {
+                return {
+                    success: false,
+                    message: 'Visit not found',
+                    data: null
+                };
+            }
+
+            // If visit was found but schoolId was not provided (though unlikely given the endpoint), use it from visit
+            const finalSchoolId = schoolId || visit.schoolId.toString();
+
+            // 1. Fetch School Details
+            const schoolResponse = await this.schoolService.findOne(finalSchoolId);
+            if (!schoolResponse.success) {
+                return schoolResponse;
+            }
+
+            // Verify userId if it matches the visit (optional but good for security)
+            if (userId && visit.userId.toString() !== userId) {
+                return {
+                    success: false,
+                    message: 'Visit does not belong to the specified user',
+                    data: null
+                };
+            }
+
+            // 3. Fetch Order Stats
+            const orderStats = await this.orderService.getSchoolStats(schoolId);
+
+            // 4. Extract Visit Details stats
+            const visitDetailsList = visit.visitDetails || [];
+            const totalVisitDetails = visitDetailsList.length;
+            const lastVisitDetail = totalVisitDetails > 0 ? visitDetailsList[totalVisitDetails - 1] : null;
+            const lastVisitDate = lastVisitDetail ? lastVisitDetail.date : null;
+
+            // Collect all remarks from visit details
+            const remarks = visitDetailsList
+                .map(detail => detail.remarks)
+                .filter(remark => !!remark);
+
+            return {
+                success: true,
+                message: 'Visit summary and stats fetched successfully',
+                data: {
+                    schoolDetails: schoolResponse.data,
+                    visitDetails: visit,
+                    stats: {
+                        totalVisitDetails,
+                        lastVisitDate,
+                        status: visit.status,
+                        remarks: remarks,
+                        totalOrders: orderStats.totalOrders,
+                        totalBooks: orderStats.totalBooks,
+                        uniqueBooks: orderStats.uniqueBooks,
+                        totalCategories: orderStats.totalCategories
+                    }
+                }
+            };
+        } catch (error) {
+            return {
+                success: false,
+                message: error.message || 'Error occurred while fetching visit summary',
+                data: null
             };
         }
     }

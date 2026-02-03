@@ -27,9 +27,10 @@ export class SchoolService {
         }
     }
 
-    async findAll() {
+    async findAll(search?: string) {
         try {
-            const data = await this.schoolModel.find().exec();
+            const filter = search ? { schoolName: { $regex: search, $options: 'i' } } : {};
+            const data = await this.schoolModel.find(filter).exec();
             return {
                 success: true,
                 message: 'Schools fetched successfully',
@@ -116,9 +117,13 @@ export class SchoolService {
         }
     }
 
-    async findByZone(zone: string) {
+    async findByZone(zone: string, search?: string) {
         try {
-            const data = await this.schoolModel.find({ zone }).exec();
+            const filter: any = { zone };
+            if (search) {
+                filter.schoolName = { $regex: search, $options: 'i' };
+            }
+            const data = await this.schoolModel.find(filter).exec();
             return {
                 success: true,
                 message: 'Schools fetched by zone successfully',

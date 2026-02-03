@@ -9,12 +9,12 @@ import { UpdateBookDto } from './dto/update-book.dto';
 export class BookService {
     constructor(@InjectModel(Book.name) private bookModel: Model<Book>) { }
 
-    async create(createBookDto: CreateBookDto, imagePath?: string, videoPath?: string) {
+    async create(createBookDto: CreateBookDto, coverImagePath?: string, pdfPath?: string) {
         try {
             const newBook = new this.bookModel({
                 ...createBookDto,
-                image: imagePath || createBookDto.image,
-                video: videoPath || createBookDto.video
+                coverImage: coverImagePath || createBookDto.coverImage,
+                pdf: pdfPath || createBookDto.pdf
             });
             const data = await newBook.save();
             return {
@@ -76,11 +76,11 @@ export class BookService {
         }
     }
 
-    async update(id: string, updateBookDto: UpdateBookDto, imagePath?: string, videoPath?: string) {
+    async update(id: string, updateBookDto: UpdateBookDto, coverImagePath?: string, pdfPath?: string) {
         try {
             const updateData: any = { ...updateBookDto };
-            if (imagePath) updateData.image = imagePath;
-            if (videoPath) updateData.video = videoPath;
+            if (coverImagePath) updateData.coverImage = coverImagePath;
+            if (pdfPath) updateData.pdf = pdfPath;
 
             const data = await this.bookModel.findByIdAndUpdate(id, updateData, { new: true }).populate('category', 'name').exec();
             if (!data) {

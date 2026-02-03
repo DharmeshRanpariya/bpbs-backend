@@ -25,24 +25,24 @@ export class BookController {
 
     @Post()
     @UseInterceptors(FileFieldsInterceptor([
-        { name: 'image', maxCount: 1 },
-        { name: 'video', maxCount: 1 },
+        { name: 'coverImage', maxCount: 1 },
+        { name: 'pdf', maxCount: 1 },
     ], multerOptions))
     create(
-        @UploadedFiles() files: { image?: Express.Multer.File[], video?: Express.Multer.File[] },
+        @UploadedFiles() files: { coverImage?: Express.Multer.File[], pdf?: Express.Multer.File[] },
         @Body() createBookDto: CreateBookDto,
     ) {
-        let imagePath = '';
-        let videoPath = '';
+        let coverImagePath = '';
+        let pdfPath = '';
 
-        if (files.image && files.image.length > 0) {
-            imagePath = `/uploads/${files.image[0].filename}`;
+        if (files.coverImage && files.coverImage.length > 0) {
+            coverImagePath = `/uploads/${files.coverImage[0].filename}`;
         }
-        if (files.video && files.video.length > 0) {
-            videoPath = `/uploads/${files.video[0].filename}`;
+        if (files.pdf && files.pdf.length > 0) {
+            pdfPath = `/uploads/${files.pdf[0].filename}`;
         }
 
-        return this.bookService.create(createBookDto, imagePath, videoPath);
+        return this.bookService.create(createBookDto, coverImagePath, pdfPath);
     }
 
     @Get()
@@ -57,25 +57,25 @@ export class BookController {
 
     @Put(':id')
     @UseInterceptors(FileFieldsInterceptor([
-        { name: 'image', maxCount: 1 },
-        { name: 'video', maxCount: 1 },
+        { name: 'coverImage', maxCount: 1 },
+        { name: 'pdf', maxCount: 1 },
     ], multerOptions))
     update(
         @Param('id') id: string,
-        @UploadedFiles() files: { image?: Express.Multer.File[], video?: Express.Multer.File[] },
+        @UploadedFiles() files: { coverImage?: Express.Multer.File[], pdf?: Express.Multer.File[] },
         @Body() updateBookDto: UpdateBookDto,
     ) {
-        let imagePath: string | undefined = undefined;
-        let videoPath: string | undefined = undefined;
+        let coverImagePath: string | undefined = undefined;
+        let pdfPath: string | undefined = undefined;
 
-        if (files.image && files.image.length > 0) {
-            imagePath = `/uploads/${files.image[0].filename}`;
+        if (files.coverImage && files.coverImage.length > 0) {
+            coverImagePath = `/uploads/${files.coverImage[0].filename}`;
         }
-        if (files.video && files.video.length > 0) {
-            videoPath = `/uploads/${files.video[0].filename}`;
+        if (files.pdf && files.pdf.length > 0) {
+            pdfPath = `/uploads/${files.pdf[0].filename}`;
         }
 
-        return this.bookService.update(id, updateBookDto, imagePath, videoPath);
+        return this.bookService.update(id, updateBookDto, coverImagePath, pdfPath);
     }
 
     @Delete(':id')

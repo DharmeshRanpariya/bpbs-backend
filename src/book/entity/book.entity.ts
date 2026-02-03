@@ -22,7 +22,19 @@ export class Book extends Document {
     video: string;
 
     @Prop()
-    image: string;
+    coverImage: string;
+
+    @Prop()
+    pdf: string;
+
+    @Prop()
+    stock: number;
+
+    @Prop()
+    author: string;
+
+    @Prop()
+    ISBN: string;
 
     @Prop({ type: Types.ObjectId, ref: 'Category', required: true })
     category: Types.ObjectId;

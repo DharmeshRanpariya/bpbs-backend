@@ -20,6 +20,9 @@ export class AuthService {
     }
 
     async login(user: any) {
+        // Update last login
+        await this.userService.updateLastLogin(user._id);
+
         const payload = {
             username: user.username,
             sub: user._id,

@@ -49,6 +49,9 @@ export class Order extends Document {
     @Prop()
     image: string;
 
+    @Prop({ default: 'Pending', enum: ['Pending', 'Completed', 'Cancelled'] })
+    status: string;
+
     @Prop({ type: [OrderCategoryItemSchema], required: true })
     orderItems: OrderCategoryItem[];
 }
