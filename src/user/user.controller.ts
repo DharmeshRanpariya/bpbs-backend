@@ -11,6 +11,7 @@ import {
     BadRequestException,
     UseGuards,
     UnauthorizedException,
+    Request,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { UserService } from './user.service';
@@ -58,9 +59,10 @@ export class UserController {
         return this.userService.findAll();
     }
 
-    @Get(':id')
-    async findOne(@Param('id') id: string) {
-        return this.userService.findOne(id);
+    @Get('/profile')
+    @UseGuards(JwtAuthGuard)
+    async findOne(@Request() req) {
+        return this.userService.findOne(req.user.id);
     }
 
     @Put(':id')
@@ -82,5 +84,11 @@ export class UserController {
     @Roles(Role.ADMIN)
     async remove(@Param('id') id: string) {
         return this.userService.remove(id);
+    }
+
+    @Put(':id/fcm-token')
+    @UseGuards(JwtAuthGuard)
+    async updateFcmToken(@Param('id') id: string, @Body('fcmToken') fcmToken: string) {
+        return this.userService.update(id, { fcmToken });
     }
 }

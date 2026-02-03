@@ -30,7 +30,24 @@ export class UpdateBookDto {
 
     @IsString()
     @IsOptional()
-    image?: string;
+    coverImage?: string;
+
+    @IsString()
+    @IsOptional()
+    pdf?: string;
+
+    @IsNumber()
+    @Type(() => Number)
+    @IsOptional()
+    stock?: number;
+
+    @IsString()
+    @IsOptional()
+    author?: string;
+
+    @IsString()
+    @IsOptional()
+    ISBN?: string;
 
     @IsMongoId()
     @IsOptional()

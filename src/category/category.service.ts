@@ -24,9 +24,20 @@ export class CategoryService {
                 { $match: matchQuery },
                 {
                     $lookup: {
-                        from: 'books', // collection name for Book
-                        localField: '_id',
-                        foreignField: 'category',
+                        from: 'books',
+                        let: { categoryId: '$_id' },
+                        pipeline: [
+                            {
+                                $match: {
+                                    $expr: {
+                                        $or: [
+                                            { $eq: ['$category', '$$categoryId'] },
+                                            { $eq: ['$category', { $toString: '$$categoryId' }] }
+                                        ]
+                                    }
+                                }
+                            }
+                        ],
                         as: 'books'
                     }
                 },

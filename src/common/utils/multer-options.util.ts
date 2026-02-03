@@ -4,14 +4,14 @@ import { HttpException, HttpStatus } from '@nestjs/common';
 import { existsSync, mkdirSync } from 'fs';
 
 export const multerOptions = {
-  // Check the mimetypes to allow only images
+  // Check the mimetypes to allow only images, videos and pdfs
   fileFilter: (req: any, file: any, cb: any) => {
-    if (file.mimetype.match(/\/(jpg|jpeg|png|gif)$/)) {
+    if (file.mimetype.match(/\/(jpg|jpeg|png|gif|mp4|mpeg|quicktime|x-matroska|webm|pdf)$/)) {
       // Allow storage of file
       cb(null, true);
     } else {
       // Reject file
-      cb(new HttpException(`Unsupported file type ${extname(file.originalname)}`, HttpStatus.BAD_REQUEST), false);
+      cb(new HttpException(`Unsupported file type ${extname(file.originalname)}. Only images, videos and PDFs are allowed.`, HttpStatus.BAD_REQUEST), false);
     }
   },
   // Storage properties

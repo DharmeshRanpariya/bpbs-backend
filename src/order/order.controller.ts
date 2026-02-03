@@ -9,11 +9,14 @@ import {
     UseGuards,
     UseInterceptors,
     UploadedFile,
+    Req,
+    Query,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { OrderService } from './order.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
+import { ProcessPaymentDto } from './dto/process-payment.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { multerOptions } from '../common/utils/multer-options.util';
 
@@ -78,5 +81,19 @@ export class OrderController {
     @Delete(':id')
     remove(@Param('id') id: string) {
         return this.orderService.remove(id);
+    }
+
+    @Get('user-stats/me')
+    getMyOrders(
+        @Req() req: any,
+        @Query('search') search: string
+    ) {
+        const userId = req.user.userId;
+        return this.orderService.findByUserIdWithStats(userId, search);
+    }
+
+    @Post('record-payment')
+    recordPayment(@Body() processPaymentDto: ProcessPaymentDto) {
+        return this.orderService.processPayment(processPaymentDto);
     }
 }

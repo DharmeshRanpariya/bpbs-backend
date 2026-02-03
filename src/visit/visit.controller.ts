@@ -54,6 +54,53 @@ export class VisitController {
         return this.visitService.findAll(schoolName, status);
     }
 
+    @Get('user')
+    findByUser(
+        @Request() req,
+        @Query('schoolName') schoolName: string,
+        @Query('status') status: string
+    ) {
+        const userId = req.user.userId.toString();
+        console.log(userId);
+        return this.visitService.findByUser(userId, schoolName, status);
+    }
+
+    @Get('user/monthly')
+    findUserVisitsByMonth(
+        @Request() req,
+        @Query('year') year: string,
+        @Query('month') month: string
+    ) {
+        const userId = req.user.userId.toString();
+        const y = year ? parseInt(year) : new Date().getFullYear();
+        const m = month ? parseInt(month) : new Date().getMonth() + 1;
+        return this.visitService.findUserVisitsByMonth(userId, y, m);
+    }
+
+    @Get('school/:schoolId')
+    findBySchool(@Param('schoolId') schoolId: string) {
+        return this.visitService.findBySchool(schoolId);
+    }
+
+    @Get('user/school/:schoolId')
+    findByUserAndSchool(
+        @Request() req,
+        @Param('schoolId') schoolId: string
+    ) {
+        const userId = req.user.userId;
+        return this.visitService.findByUserAndSchool(userId, schoolId);
+    }
+
+    @Get('summary/details')
+    getSummary(
+        @Request() req,
+        @Query('schoolId') schoolId: string,
+        @Query('visitId') visitId?: string
+    ) {
+        const userId = req.user.userId.toString();
+        return this.visitService.getVisitSummaryWithStats(schoolId, visitId, userId);
+    }
+
     @Get(':id')
     findOne(@Param('id') id: string) {
         return this.visitService.findOne(id);
@@ -68,7 +115,18 @@ export class VisitController {
     ) {
         if (file) {
             const photoPath = `/uploads/${file.filename}`;
+<<<<<<< Updated upstream
             if (updateVisitDto.visitDetails && updateVisitDto.visitDetails.length > 0) {
+=======
+            if (typeof updateVisitDto.visitDetails === 'string') {
+                try {
+                    updateVisitDto.visitDetails = JSON.parse(updateVisitDto.visitDetails);
+                } catch (e) {
+                }
+            }
+
+            if (Array.isArray(updateVisitDto.visitDetails) && updateVisitDto.visitDetails.length > 0) {
+>>>>>>> Stashed changes
                 updateVisitDto.visitDetails[0].photo = photoPath;
             } else if (typeof updateVisitDto.visitDetails === 'string') {
                 try {
@@ -86,23 +144,5 @@ export class VisitController {
     @Delete(':id')
     remove(@Param('id') id: string) {
         return this.visitService.remove(id);
-    }
-
-    @Get('user/:userId')
-    findByUser(@Param('userId') userId: string) {
-        return this.visitService.findByUser(userId);
-    }
-
-    @Get('school/:schoolId')
-    findBySchool(@Param('schoolId') schoolId: string) {
-        return this.visitService.findBySchool(schoolId);
-    }
-
-    @Get('user/:userId/school/:schoolId')
-    findByUserAndSchool(
-        @Param('userId') userId: string,
-        @Param('schoolId') schoolId: string
-    ) {
-        return this.visitService.findByUserAndSchool(userId, schoolId);
     }
 }

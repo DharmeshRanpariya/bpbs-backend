@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, Put, Delete, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Put, Delete, UseGuards, Query } from '@nestjs/common';
 import { SchoolService } from './school.service';
 import { CreateSchoolDto } from './dto/create-school.dto';
 import { UpdateSchoolDto } from './dto/update-school.dto';
@@ -15,10 +15,21 @@ export class SchoolController {
     }
 
     @Get()
-    findAll() {
-        return this.schoolService.findAll();
+    findAll(@Query('search') search: string) {
+        return this.schoolService.findAll(search);
     }
 
+<<<<<<< Updated upstream
+=======
+    @Get('zone/:zone')
+    findByZone(
+        @Param('zone') zone: string,
+        @Query('search') search: string
+    ) {
+        return this.schoolService.findByZone(zone, search);
+    }
+
+>>>>>>> Stashed changes
     @Get(':id')
     findOne(@Param('id') id: string) {
         return this.schoolService.findOne(id);

@@ -1,3 +1,4 @@
+
 import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -12,13 +13,17 @@ import { VisitModule } from './visit/visit.module';
 import { CategoryModule } from './category/category.module';
 import { BookModule } from './book/book.module';
 import { OrderModule } from './order/order.module';
+import { ScheduleModule } from '@nestjs/schedule';
+import { NotificationModule } from './notification/notification.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
     }),
+    ScheduleModule.forRoot(),
     AuthModule,
+    NotificationModule,
 
     MongooseModule.forRoot(process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/school_db'),
     ServeStaticModule.forRoot({
