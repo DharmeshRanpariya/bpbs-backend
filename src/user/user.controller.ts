@@ -62,7 +62,7 @@ export class UserController {
     @Get('/profile')
     @UseGuards(JwtAuthGuard)
     async findOne(@Request() req) {
-        return this.userService.findOne(req.user.id);
+        return this.userService.findOne(req.user.sub);
     }
 
     @Put(':id')

@@ -62,7 +62,7 @@ export class VisitController {
         @Query('schoolName') schoolName: string,
         @Query('status') status: string
     ) {
-        const userId = req.user.userId.toString();
+        const userId = req.user.sub.toString();
         console.log(userId);
         return this.visitService.findByUser(userId, schoolName, status);
     }
@@ -73,7 +73,7 @@ export class VisitController {
         @Query('year') year: string,
         @Query('month') month: string
     ) {
-        const userId = req.user.userId.toString();
+        const userId = req.user.sub.toString();
         const y = year ? parseInt(year) : new Date().getFullYear();
         const m = month ? parseInt(month) : new Date().getMonth() + 1;
         return this.visitService.findUserVisitsByMonth(userId, y, m);
@@ -89,7 +89,7 @@ export class VisitController {
         @Request() req,
         @Param('schoolId') schoolId: string
     ) {
-        const userId = req.user.userId;
+        const userId = req.user.sub;
         return this.visitService.findByUserAndSchool(userId, schoolId);
     }
 
@@ -99,7 +99,7 @@ export class VisitController {
         @Query('schoolId') schoolId: string,
         @Query('visitId') visitId?: string
     ) {
-        const userId = req.user.userId.toString();
+        const userId = req.user.sub.toString();
         return this.visitService.getVisitSummaryWithStats(schoolId, visitId, userId);
     }
 
