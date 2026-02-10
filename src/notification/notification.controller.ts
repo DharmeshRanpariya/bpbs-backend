@@ -13,7 +13,7 @@ export class NotificationController {
 
     @Get('my-notifications')
     async getMyNotifications(@Request() req) {
-        const userId = req.user.sub;
+        const userId = req.user.userId;
         const data = await this.notificationModel.find({ userId })
             .sort({ createdAt: -1 })
             .exec();
@@ -40,7 +40,7 @@ export class NotificationController {
 
     @Put('read-all')
     async markAllAsRead(@Request() req) {
-        const userId = req.user.sub;
+        const userId = req.user.userId;
         await this.notificationModel.updateMany(
             { userId, isRead: false },
             { $set: { isRead: true } }
