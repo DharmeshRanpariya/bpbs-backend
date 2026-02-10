@@ -70,12 +70,12 @@ export class VisitController {
     @Get('user/monthly')
     findUserVisitsByMonth(
         @Request() req,
-        @Query('year') year: string,
-        @Query('month') month: string
+        @Query('year') year?: string,
+        @Query('month') month?: string
     ) {
         const userId = req.user.userId.toString();
-        const y = year ? parseInt(year) : new Date().getFullYear();
-        const m = month ? parseInt(month) : new Date().getMonth() + 1;
+        const y = year ? parseInt(year) : undefined;
+        const m = month ? parseInt(month) : undefined;
         return this.visitService.findUserVisitsByMonth(userId, y, m);
     }
 

@@ -378,28 +378,30 @@ export class VisitService {
         }
     }
 
-    async findUserVisitsByMonth(userId: string, year: number, month: number) {
+    async findUserVisitsByMonth(userId: string, year?: number, month?: number) {
         try {
-            const startDate = new Date(year, month - 1, 1);
-            const endDate = new Date(year, month, 0, 23, 59, 59, 999);
+            const query: any = { userId: new Types.ObjectId(userId) };
 
-            const data = await this.visitModel.find({
-                userId: new Types.ObjectId(userId),
-                scheduleDate: { $gte: startDate, $lte: endDate }
-            })
+            if (year && month) {
+                const startDate = new Date(year, month - 1, 1);
+                const endDate = new Date(year, month, 0, 23, 59, 59, 999);
+                query.scheduleDate = { $gte: startDate, $lte: endDate };
+            }
+
+            const data = await this.visitModel.find(query)
                 .populate('userId', 'username email')
                 .populate('schoolId', 'schoolName address')
                 .exec();
 
             return {
                 success: true,
-                message: 'Visits fetched successfully for the month',
+                message: (year && month) ? 'Visits fetched successfully for the month' : 'All user visits fetched successfully',
                 data,
             };
         } catch (error) {
             return {
                 success: false,
-                message: error.message || 'Error occurred while fetching visits by month',
+                message: error.message || 'Error occurred while fetching visits',
                 data: null,
             };
         }
