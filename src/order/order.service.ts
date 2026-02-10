@@ -395,7 +395,13 @@ export class OrderService {
 
     async getSchoolStats(schoolId: string) {
         try {
-            const orders = await this.orderModel.find({ schoolId: new Types.ObjectId(schoolId) }).exec();
+            let schoolObjectId: any = schoolId;
+            if (Types.ObjectId.isValid(schoolId)) {
+                schoolObjectId = new Types.ObjectId(schoolId);
+            }
+
+            const schoolMatchQuery = { $in: [schoolId, schoolObjectId] };
+            const orders = await this.orderModel.find({ schoolId: schoolMatchQuery }).exec();
 
             let totalBooks = 0;
             const categoryIds = new Set();
@@ -418,6 +424,7 @@ export class OrderService {
                 totalCategories: categoryIds.size
             };
         } catch (error) {
+            console.error('Error in getSchoolStats:', error);
             return {
                 totalOrders: 0,
                 totalBooks: 0,

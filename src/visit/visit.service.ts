@@ -430,13 +430,27 @@ export class VisitService {
 
     async getVisitSummaryWithStats(schoolId: string, visitId: string | undefined, userId: string) {
         try {
+            // Prepare robust IDs
+            let userObjectId: any = userId;
+            let schoolObjectId: any = schoolId;
+            try {
+                if (Types.ObjectId.isValid(userId)) userObjectId = new Types.ObjectId(userId);
+                if (Types.ObjectId.isValid(schoolId)) schoolObjectId = new Types.ObjectId(schoolId);
+            } catch (e) { }
+
+            const userMatch = { $in: [userId, userObjectId] };
+            const schoolMatch = { $in: [schoolId, schoolObjectId] };
+
             // 2. Fetch Visit Details
             let visit;
             if (visitId) {
                 visit = await this.visitModel.findById(visitId).exec();
             } else if (schoolId && userId) {
                 // If visitId is not provided, try to find the visit for this user and school
-                visit = await this.visitModel.findOne({ userId, schoolId }).exec();
+                visit = await this.visitModel.findOne({
+                    userId: userMatch,
+                    schoolId: schoolMatch
+                }).exec();
             }
 
             if (!visit) {
@@ -456,8 +470,8 @@ export class VisitService {
                 return schoolResponse;
             }
 
-            // Verify userId if it matches the visit (optional but good for security)
-            if (userId && visit.userId.toString() !== userId) {
+            // Verify userId matches (compare strings to avoid type issues)
+            if (userId && visit.userId.toString() !== userId.toString()) {
                 return {
                     success: false,
                     message: 'Visit does not belong to the specified user',
