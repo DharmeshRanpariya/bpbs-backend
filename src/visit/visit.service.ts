@@ -207,7 +207,14 @@ export class VisitService {
 
     async findByUser(userId: string, schoolName?: string, status?: string) {
         try {
-            const query: any = { userId };
+            let userObjectId: any = userId;
+            if (Types.ObjectId.isValid(userId)) {
+                userObjectId = new Types.ObjectId(userId);
+            }
+
+            const query: any = {
+                userId: { $in: [userId, userObjectId] }
+            };
 
             if (status) {
                 query.status = status;
@@ -380,7 +387,19 @@ export class VisitService {
 
     async findUserVisitsByMonth(userId: string, year?: number, month?: number) {
         try {
-            const query: any = { userId: new Types.ObjectId(userId) };
+            let userObjectId: any = userId;
+            try {
+                if (Types.ObjectId.isValid(userId)) {
+                    userObjectId = new Types.ObjectId(userId);
+                }
+            } catch (e) {
+                console.error('Error casting userId to ObjectId:', e);
+            }
+
+            // Use $in with both string and ObjectId to be safe against inconsistent data
+            const query: any = {
+                userId: { $in: [userId, userObjectId] }
+            };
 
             if (year && month) {
                 const startDate = new Date(year, month - 1, 1);
@@ -391,6 +410,7 @@ export class VisitService {
             const data = await this.visitModel.find(query)
                 .populate('userId', 'username email')
                 .populate('schoolId', 'schoolName address')
+                .sort({ scheduleDate: -1 })
                 .exec();
 
             return {
@@ -399,6 +419,7 @@ export class VisitService {
                 data,
             };
         } catch (error) {
+            console.error('Error in findUserVisitsByMonth:', error);
             return {
                 success: false,
                 message: error.message || 'Error occurred while fetching visits',
