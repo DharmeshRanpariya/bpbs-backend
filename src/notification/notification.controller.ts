@@ -1,6 +1,6 @@
 import { Controller, Get, Param, Put, UseGuards, Request } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { Notification } from './entity/notification.entity';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 
@@ -14,7 +14,17 @@ export class NotificationController {
     @Get('my-notifications')
     async getMyNotifications(@Request() req) {
         const userId = req.user.userId;
-        const data = await this.notificationModel.find({ userId })
+
+        let userObjectId: any = userId;
+        try {
+            if (Types.ObjectId.isValid(userId)) {
+                userObjectId = new Types.ObjectId(userId);
+            }
+        } catch (e) { }
+
+        const data = await this.notificationModel.find({
+            userId: { $in: [userId, userObjectId] }
+        })
             .sort({ createdAt: -1 })
             .exec();
 

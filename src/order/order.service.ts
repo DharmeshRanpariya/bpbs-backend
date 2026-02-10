@@ -199,12 +199,20 @@ export class OrderService {
         }
     }
 
+
     async findByUserIdWithStats(userId: string, search?: string) {
         try {
-            const matchQuery: any = { userId: new Types.ObjectId(userId) };
+            console.log('findByUserIdWithStats - Incoming userId:', userId);
+            let userObjectId: any = userId;
+            if (Types.ObjectId.isValid(userId)) {
+                userObjectId = new Types.ObjectId(userId);
+            }
+            const matchQuery: any = { userId: { $in: [userId, userObjectId] } };
+            console.log('findByUserIdWithStats - matchQuery:', JSON.stringify(matchQuery));
             let orders;
 
             if (search) {
+                // ... (existing search logic)
                 const matchingOrders = await this.orderModel.aggregate([
                     { $match: matchQuery },
                     {
@@ -238,6 +246,17 @@ export class OrderService {
                     .populate('orderItems.categoryId', 'name')
                     .populate('orderItems.books.bookId', 'name price')
                     .exec();
+            }
+
+            console.log(`findByUserIdWithStats - Found ${orders.length} orders`);
+
+            if (orders.length === 0) {
+                // System check for ANY order to see ID structure
+                const anyOrder = await this.orderModel.findOne().lean().exec();
+                if (anyOrder) {
+                    console.log('Order System Check - RAW Order userId:', anyOrder.userId);
+                    console.log('Order System Check - RAW Order userId type:', typeof anyOrder.userId);
+                }
             }
 
             const totalOrders = orders.length;

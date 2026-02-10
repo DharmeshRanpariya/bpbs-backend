@@ -47,15 +47,17 @@ export class UserService {
             throw new NotFoundException(`User with ID ${id} not found`);
         }
 
-        // Calculate stats
-        const totalVisit = await this.visitModel.countDocuments({ userId: new Types.ObjectId(id) });
-        const totalOrder = await this.orderModel.countDocuments({ userId: new Types.ObjectId(id) });
+        const userObjectId = user._id;
+        const userIdStr = userObjectId.toString();
+        // Powerful match pattern that works for both String and ObjectId storage
+        const userMatchQuery = { $in: [userObjectId, userIdStr] };
 
-        // Calculate completed orders
-        const completedOrder = await this.orderModel.countDocuments({
-            userId: new Types.ObjectId(id),
-            status: 'Completed'
-        });
+        // Calculate stats robustly
+        const [totalVisit, totalOrder, completedOrder] = await Promise.all([
+            this.visitModel.countDocuments({ userId: userMatchQuery }),
+            this.orderModel.countDocuments({ userId: userMatchQuery }),
+            this.orderModel.countDocuments({ userId: userMatchQuery, status: 'Completed' })
+        ]);
 
         // Calculate today's orders
         const startOfDay = new Date();
@@ -64,13 +66,13 @@ export class UserService {
         endOfDay.setHours(23, 59, 59, 999);
 
         const todayOrder = await this.orderModel.countDocuments({
-            userId: new Types.ObjectId(id),
+            userId: userMatchQuery,
             createdAt: { $gte: startOfDay, $lte: endOfDay }
         });
 
-        // Calculate revenue (sum of totalPayment from completed orders)
+        // Calculate revenue robustly with aggregation
         const revenueResult = await this.orderModel.aggregate([
-            { $match: { userId: new Types.ObjectId(id), status: 'Completed' } },
+            { $match: { userId: userMatchQuery, status: 'Completed' } },
             { $group: { _id: null, total: { $sum: '$totalPayment' } } }
         ]);
         const revenue = revenueResult.length > 0 ? revenueResult[0].total : 0;
