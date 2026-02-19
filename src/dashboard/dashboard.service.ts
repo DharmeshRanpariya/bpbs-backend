@@ -84,10 +84,8 @@ export class DashboardService {
                 userId: userMatchQuery,
                 status: 'Completed'
             }),
-            this.orderModel.find({
-                userId: userMatchQuery,
-                createdAt: { $gte: today, $lt: tomorrow }
-            })
+            this.orderModel.find({ userId: userMatchQuery })
+                .select('status totalPayment schoolId createdAt')
                 .populate('schoolId', 'schoolName')
                 .sort({ createdAt: -1 })
         ]);
