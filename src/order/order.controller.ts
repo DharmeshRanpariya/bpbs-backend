@@ -51,6 +51,25 @@ export class OrderController {
         return this.orderService.findAll();
     }
 
+    @Get('my-orders')
+    getMyOrdersWithFilters(
+        @Req() req: any,
+        @Query('search') search: string,
+        @Query('status') status: string,
+    ) {
+        const userId = req.user.userId;
+        return this.orderService.getUserOrdersWithFilters(userId, search, status);
+    }
+
+    @Get('user-stats/me')
+    getMyOrders(
+        @Req() req: any,
+        @Query('search') search: string
+    ) {
+        const userId = req.user.userId;
+        return this.orderService.findByUserIdWithStats(userId, search);
+    }
+
     @Get(':id')
     findOne(@Param('id') id: string) {
         return this.orderService.findOne(id);
@@ -81,25 +100,6 @@ export class OrderController {
     @Delete(':id')
     remove(@Param('id') id: string) {
         return this.orderService.remove(id);
-    }
-
-    @Get('my-orders')
-    getMyOrdersWithFilters(
-        @Req() req: any,
-        @Query('search') search: string,
-        @Query('status') status: string,
-    ) {
-        const userId = req.user.userId;
-        return this.orderService.getUserOrdersWithFilters(userId, search, status);
-    }
-
-    @Get('user-stats/me')
-    getMyOrders(
-        @Req() req: any,
-        @Query('search') search: string
-    ) {
-        const userId = req.user.userId;
-        return this.orderService.findByUserIdWithStats(userId, search);
     }
 
     @Post('record-payment')
