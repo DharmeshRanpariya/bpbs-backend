@@ -68,6 +68,9 @@ export class User extends Document {
     @Prop()
     lastLogin: Date;
 
+    @Prop({ default: 'active', enum: ['active', 'deactive'] })
+    status: string;
+
     @Prop()
     fcmToken: string;
 }

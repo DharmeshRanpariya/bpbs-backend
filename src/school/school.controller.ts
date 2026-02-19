@@ -15,8 +15,8 @@ export class SchoolController {
     }
 
     @Get()
-    findAll(@Query('search') search: string) {
-        return this.schoolService.findAll(search);
+    findAll(@Query() query: any) {
+        return this.schoolService.findAll(query);
     }
 
     @Get('zone/:zone')

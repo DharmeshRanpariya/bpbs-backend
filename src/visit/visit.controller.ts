@@ -51,9 +51,11 @@ export class VisitController {
     @Get()
     findAll(
         @Query('schoolName') schoolName: string,
-        @Query('status') status: string
+        @Query('status') status: string,
+        @Query('page') page?: number,
+        @Query('limit') limit?: number
     ) {
-        return this.visitService.findAll(schoolName, status);
+        return this.visitService.findAll({ schoolName, status, page, limit });
     }
 
     @Get('user')
