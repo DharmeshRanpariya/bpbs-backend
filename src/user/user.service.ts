@@ -5,6 +5,7 @@ import { User } from './entity/user.entity';
 import { Order } from '../order/entity/order.entity';
 import { Visit } from '../visit/entity/visit.entity';
 import { CreateUserDto } from './dto/create-user.dto';
+import { School } from '../school/entity/school.entity';
 import * as bcrypt from 'bcrypt';
 import { normalizeZone } from '../common/utils/zone-normalization.util';
 
@@ -14,6 +15,7 @@ export class UserService {
         @InjectModel(User.name) private userModel: Model<User>,
         @InjectModel(Order.name) private orderModel: Model<Order>,
         @InjectModel(Visit.name) private visitModel: Model<Visit>,
+        @InjectModel(School.name) private schoolModel: Model<School>,
     ) { }
 
     async create(createUserDto: CreateUserDto, profilePhotoPath?: string) {
@@ -32,12 +34,38 @@ export class UserService {
         };
     }
 
-    async findAll() {
-        const data = await this.userModel.find().exec();
+    async findAll(query: { page?: number, limit?: number, search?: string, zone?: string }) {
+        const page = Number(query.page) || 1;
+        const limit = Number(query.limit) || 10;
+        const skip = (page - 1) * limit;
+
+        const filter: any = {};
+        if (query.search) {
+            filter.username = { $regex: query.search, $options: 'i' };
+        }
+        if (query.zone) {
+            filter.assignedZone = normalizeZone(query.zone);
+        }
+
+        const [data, filteredCount, totalUserCount, activeUserCount] = await Promise.all([
+            this.userModel.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).exec(),
+            this.userModel.countDocuments(filter).exec(),
+            this.userModel.countDocuments().exec(),
+            this.userModel.countDocuments({ status: 'active' }).exec(),
+        ]);
+
         return {
             success: true,
             message: 'Users fetched successfully',
             data,
+            totalUserCount,
+            activeUserCount,
+            pagination: {
+                total: filteredCount,
+                page,
+                limit,
+                pages: Math.ceil(filteredCount / limit),
+            }
         };
     }
 
@@ -53,10 +81,13 @@ export class UserService {
         const userMatchQuery = { $in: [userObjectId, userIdStr] };
 
         // Calculate stats robustly
-        const [totalVisit, totalOrder, completedOrder] = await Promise.all([
+        const [totalVisit, totalOrder, completedOrder, totalSchools, lastVisit, lastOrder] = await Promise.all([
             this.visitModel.countDocuments({ userId: userMatchQuery }),
             this.orderModel.countDocuments({ userId: userMatchQuery }),
-            this.orderModel.countDocuments({ userId: userMatchQuery, status: 'Completed' })
+            this.orderModel.countDocuments({ userId: userMatchQuery, status: 'Completed' }),
+            this.schoolModel.countDocuments({ zone: user.assignedZone }),
+            this.visitModel.findOne({ userId: userMatchQuery }).sort({ createdAt: -1 }).select('createdAt').exec(),
+            this.orderModel.findOne({ userId: userMatchQuery }).sort({ createdAt: -1 }).select('createdAt').exec(),
         ]);
 
         // Calculate today's orders
@@ -77,6 +108,17 @@ export class UserService {
         ]);
         const revenue = revenueResult.length > 0 ? revenueResult[0].total : 0;
 
+        // Determine last activity
+        const activities = [
+            user.lastLogin,
+            lastVisit ? (lastVisit as any).createdAt : null,
+            lastOrder ? (lastOrder as any).createdAt : null
+        ].filter(date => date != null);
+
+        const lastActivity = activities.length > 0
+            ? new Date(Math.max(...activities.map(d => new Date(d).getTime())))
+            : null;
+
         const data = {
             ...user.toObject(),
             stats: {
@@ -85,6 +127,8 @@ export class UserService {
                 completedOrder,
                 todayOrder,
                 revenue,
+                totalSchools,
+                lastActivity
             }
         };
 
@@ -132,5 +176,19 @@ export class UserService {
 
     async updateLastLogin(id: string) {
         return this.userModel.findByIdAndUpdate(id, { lastLogin: new Date() }).exec();
+    }
+
+    async toggleStatus(id: string) {
+        const user = await this.userModel.findById(id).exec();
+        if (!user) {
+            throw new NotFoundException(`User with ID ${id} not found`);
+        }
+        user.status = user.status === 'active' ? 'deactive' : 'active';
+        const data = await user.save();
+        return {
+            success: true,
+            message: `User status changed to ${user.status}`,
+            data,
+        };
     }
 }

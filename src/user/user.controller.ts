@@ -12,6 +12,7 @@ import {
     UseGuards,
     UnauthorizedException,
     Request,
+    Query,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { UserService } from './user.service';
@@ -55,14 +56,21 @@ export class UserController {
     @Get()
     @UseGuards(JwtAuthGuard, RolesGuard)
     @Roles(Role.ADMIN)
-    async findAll() {
-        return this.userService.findAll();
+    async findAll(@Query() query: any) {
+        return this.userService.findAll(query);
     }
 
     @Get('/profile')
     @UseGuards(JwtAuthGuard)
     async findOne(@Request() req) {
         return this.userService.findOne(req.user.userId);
+    }
+
+    @Get(':id/stats')
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles(Role.ADMIN)
+    async getUserStats(@Param('id') id: string) {
+        return this.userService.findOne(id);
     }
 
     @Put(':id')
@@ -90,5 +98,12 @@ export class UserController {
     @UseGuards(JwtAuthGuard)
     async updateFcmToken(@Param('id') id: string, @Body('fcmToken') fcmToken: string) {
         return this.userService.update(id, { fcmToken });
+    }
+
+    @Put(':id/toggle-status')
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles(Role.ADMIN)
+    async toggleStatus(@Param('id') id: string) {
+        return this.userService.toggleStatus(id);
     }
 }

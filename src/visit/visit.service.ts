@@ -89,30 +89,53 @@ export class VisitService {
         }
     }
 
-    async findAll(schoolName?: string, status?: string) {
+    async findAll(queryObj: { page?: number, limit?: number, schoolName?: string, status?: string }) {
         try {
-            const query: any = {};
+            const page = Number(queryObj.page) || 1;
+            const limit = Number(queryObj.limit) || 10;
+            const skip = (page - 1) * limit;
 
-            if (status) {
-                query.status = status;
+            const filter: any = {};
+
+            if (queryObj.status) {
+                filter.status = queryObj.status;
             }
 
-            if (schoolName) {
-                // Find schools matching the name using optimized search
-                const schoolResponse = await this.schoolService.findAll(schoolName);
+            if (queryObj.schoolName) {
+                const schoolResponse = await this.schoolService.findAll({ search: queryObj.schoolName });
                 const matchedSchoolIds = (schoolResponse.data || []).map((school: any) => school._id);
-
-                query.schoolId = { $in: matchedSchoolIds };
+                filter.schoolId = { $in: matchedSchoolIds };
             }
 
-            const data = await this.visitModel.find(query)
-                .populate('userId', 'username email')
-                .populate('schoolId', 'schoolName address')
-                .exec();
+            const [visistData, filteredCount, totalVisist, CompleteVisist, pedingVisist, rescheduledVisist] = await Promise.all([
+                this.visitModel.find(filter)
+                    .sort({ createdAt: -1 })
+                    .skip(skip)
+                    .limit(limit)
+                    .populate('userId', 'username email')
+                    .populate('schoolId', 'schoolName address')
+                    .exec(),
+                this.visitModel.countDocuments(filter).exec(),
+                this.visitModel.countDocuments().exec(),
+                this.visitModel.countDocuments({ status: 'completed' }).exec(),
+                this.visitModel.countDocuments({ status: 'pending' }).exec(),
+                this.visitModel.countDocuments({ status: 'rescheduled' }).exec(),
+            ]);
+
             return {
                 success: true,
                 message: 'Visits fetched successfully',
-                data,
+                visistData,
+                totalVisist,
+                CompleteVisist,
+                pedingVisist,
+                rescheduledVisist,
+                pagination: {
+                    total: filteredCount,
+                    page,
+                    limit,
+                    pages: Math.ceil(filteredCount / limit),
+                }
             };
         } catch (error) {
             return {
@@ -221,7 +244,7 @@ export class VisitService {
             }
 
             if (schoolName) {
-                const schoolResponse = await this.schoolService.findAll(schoolName);
+                const schoolResponse = await this.schoolService.findAll({ search: schoolName });
                 const matchedSchoolIds = (schoolResponse.data || []).map((school: any) => school._id.toString());
 
                 if (matchedSchoolIds.length === 0) {
