@@ -26,6 +26,9 @@ export class School extends Document {
 
     @Prop({ required: true })
     zone: string;
+
+    @Prop({ default: 'active', enum: ['active', 'deactive'] })
+    status: string;
 }
 
 export const SchoolSchema = SchemaFactory.createForClass(School);

@@ -5,6 +5,7 @@ import { UserService } from './user.service';
 import { User, UserSchema } from './entity/user.entity';
 import { Order, OrderSchema } from '../order/entity/order.entity';
 import { Visit, VisitSchema } from '../visit/entity/visit.entity';
+import { School, SchoolSchema } from '../school/entity/school.entity';
 
 import { AuthModule } from '../auth/auth.module';
 import { forwardRef } from '@nestjs/common';
@@ -15,6 +16,7 @@ import { forwardRef } from '@nestjs/common';
             { name: User.name, schema: UserSchema },
             { name: Order.name, schema: OrderSchema },
             { name: Visit.name, schema: VisitSchema },
+            { name: School.name, schema: SchoolSchema },
         ]),
         forwardRef(() => AuthModule),
     ],
