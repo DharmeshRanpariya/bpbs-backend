@@ -61,6 +61,9 @@ export class DashboardService {
     }
 
     async getUserTodayStats(userId: string) {
+        const userObjectId = new Types.ObjectId(userId);
+        const userMatchQuery = { $in: [userObjectId, userId] };
+
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         const tomorrow = new Date(today);
@@ -73,16 +76,16 @@ export class DashboardService {
             orderList
         ] = await Promise.all([
             this.orderModel.countDocuments({
-                userId: new Types.ObjectId(userId),
+                userId: userMatchQuery,
                 createdAt: { $gte: today, $lt: tomorrow }
             }),
-            this.orderModel.countDocuments({ userId: new Types.ObjectId(userId) }),
+            this.orderModel.countDocuments({ userId: userMatchQuery }),
             this.orderModel.countDocuments({
-                userId: new Types.ObjectId(userId),
+                userId: userMatchQuery,
                 status: 'Completed'
             }),
             this.orderModel.find({
-                userId: new Types.ObjectId(userId),
+                userId: userMatchQuery,
                 createdAt: { $gte: today, $lt: tomorrow }
             })
                 .populate('schoolId', 'schoolName')
