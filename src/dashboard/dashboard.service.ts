@@ -71,12 +71,18 @@ export class DashboardService {
 
         const [
             todayTotalOrder,
+            todayCompletedOrder,
             totalOrder,
             completeOrder,
             orderList
         ] = await Promise.all([
             this.orderModel.countDocuments({
                 userId: userMatchQuery,
+                createdAt: { $gte: today, $lt: tomorrow }
+            }),
+            this.orderModel.countDocuments({
+                userId: userMatchQuery,
+                status: 'Completed',
                 createdAt: { $gte: today, $lt: tomorrow }
             }),
             this.orderModel.countDocuments({ userId: userMatchQuery }),
@@ -96,6 +102,7 @@ export class DashboardService {
             data: {
                 todayDate: new Date(),
                 todayTotalOrder,
+                todayCompletedOrder,
                 totalOrder,
                 completeOrder,
                 orderList

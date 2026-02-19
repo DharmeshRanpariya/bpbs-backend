@@ -200,6 +200,49 @@ export class OrderService {
     }
 
 
+    async getUserOrdersWithFilters(userId: string, search?: string, status?: string) {
+        try {
+            const userObjectId = new Types.ObjectId(userId);
+            const userMatchQuery = { $in: [userObjectId, userId] };
+
+            const query: any = { userId: userMatchQuery };
+
+            if (status) {
+                query.status = status;
+            }
+
+            if (search) {
+                // Find schools matching the search term
+                const schools = await this.userModel.db.model('School').find({
+                    schoolName: { $regex: search, $options: 'i' }
+                }).select('_id');
+
+                const schoolIds = schools.map(s => s._id);
+                query.schoolId = { $in: schoolIds };
+            }
+
+            const orders = await this.orderModel.find(query)
+                .populate('schoolId', 'schoolName address contactNumber')
+                .populate('orderItems.categoryId', 'name')
+                .populate('orderItems.books.bookId', 'name price')
+                .sort({ createdAt: -1 })
+                .exec();
+
+            return {
+                success: true,
+                message: 'User orders fetched successfully',
+                data: orders,
+                count: orders.length
+            };
+        } catch (error) {
+            return {
+                success: false,
+                message: error.message || 'Error occurred while fetching filtered orders',
+                data: null,
+            };
+        }
+    }
+
     async findByUserIdWithStats(userId: string, search?: string) {
         try {
             console.log('findByUserIdWithStats - Incoming userId:', userId);
