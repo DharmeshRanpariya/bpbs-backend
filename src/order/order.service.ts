@@ -156,7 +156,7 @@ export class OrderService {
 
             return {
                 success: true,
-                message: 'Orders fetched successfully',
+                message: 'Orders fetched successfully.',
                 data: ordersWithInfo,
                 stats: orderStats
             };
