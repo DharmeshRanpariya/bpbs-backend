@@ -65,7 +65,8 @@ export class DashboardService {
                 { $group: { _id: null, total: { $sum: '$totalPayment' } } }
             ]),
             this.orderModel.find({
-                createdAt: { $gte: today, $lt: tomorrow }
+                createdAt: { $gte: today, $lt: tomorrow },
+                userId: { $ne: null, $exists: true }
             })
                 .populate('userId', 'username')
                 .populate('schoolId', 'schoolName')
@@ -118,6 +119,13 @@ export class DashboardService {
     }
 
     async getUserTodayStats(userId: string) {
+        if (!userId || !Types.ObjectId.isValid(userId)) {
+            return {
+                success: false,
+                message: 'Invalid User ID provided',
+                data: null
+            };
+        }
         const userObjectId = new Types.ObjectId(userId);
         const userMatchQuery = { $in: [userObjectId, userId] };
 
