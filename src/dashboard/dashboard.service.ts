@@ -66,7 +66,7 @@ export class DashboardService {
             ]),
             this.orderModel.find({
                 createdAt: { $gte: today, $lt: tomorrow },
-                userId: { $ne: null, $exists: true }
+                userId: { $type: 'objectId' } as any
             })
                 .populate('userId', 'username')
                 .populate('schoolId', 'schoolName')
