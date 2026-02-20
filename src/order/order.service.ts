@@ -114,7 +114,7 @@ export class OrderService {
             }
 
             const [orders, stats] = await Promise.all([
-                this.orderModel.find(filter)
+                this.orderModel.find({ ...filter, userId: { $nin: [null, ""] } } as any)
                     .populate('userId', 'username email')
                     .populate('schoolId', 'schoolName address')
                     .populate('orderItems.categoryId', 'name')
@@ -122,7 +122,7 @@ export class OrderService {
                     .sort({ createdAt: -1 })
                     .exec(),
                 this.orderModel.aggregate([
-                    { $match: filter },
+                    { $match: { ...filter, userId: { $nin: [null, ""] } } },
                     {
                         $group: {
                             _id: null,
