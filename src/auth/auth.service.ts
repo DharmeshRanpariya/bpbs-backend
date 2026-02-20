@@ -3,11 +3,14 @@ import { JwtService } from '@nestjs/jwt';
 import { UserService } from '../user/user.service';
 import * as bcrypt from 'bcrypt';
 
+import { AttendanceService } from '../attendance/attendance.service';
+
 @Injectable()
 export class AuthService {
     constructor(
         private userService: UserService,
         private jwtService: JwtService,
+        private attendanceService: AttendanceService,
     ) { }
 
     async validateUser(username: string, pass: string): Promise<any> {
@@ -25,6 +28,9 @@ export class AuthService {
     async login(user: any) {
         // Update last login
         await this.userService.updateLastLogin(user._id);
+
+        // Auto mark attendance for today
+        await this.attendanceService.markAttendance(user._id.toString());
 
         const payload = {
             username: user.username,

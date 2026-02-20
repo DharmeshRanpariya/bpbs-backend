@@ -1,4 +1,4 @@
-import { Controller, Get, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, UseGuards, Request, Query } from '@nestjs/common';
 import { DashboardService } from './dashboard.service';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 
@@ -8,8 +8,8 @@ export class DashboardController {
     constructor(private readonly dashboardService: DashboardService) { }
 
     @Get('stats')
-    async getStats() {
-        return this.dashboardService.getStats();
+    async getStats(@Query('period') period: string = 'thisWeek') {
+        return this.dashboardService.getStats(period);
     }
 
     @Get('user-stats')

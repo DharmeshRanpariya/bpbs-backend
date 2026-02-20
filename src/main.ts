@@ -15,6 +15,14 @@ async function bootstrap() {
   app.use(json({ limit: '50mb' }));
   app.use(urlencoded({ limit: '50mb', extended: true }));
 
+  app.enableCors({
+    origin: [
+      'https://admin.bpbs.in',
+      'http://localhost:3000',
+    ],
+    credentials: true,
+  });
+
   app.useGlobalFilters(
     new MulterExceptionFilter(),
     new GlobalExceptionFilter(),

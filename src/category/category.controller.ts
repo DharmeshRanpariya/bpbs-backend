@@ -17,9 +17,12 @@ import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { multerOptions } from '../common/utils/multer-options.util';
+import { Roles } from '../common/decorators/roles.decorator';
+import { RolesGuard } from '../common/guards/roles.guard';
+import { Role } from '../common/enums/role.enum';
 
 @Controller('category')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class CategoryController {
     constructor(private readonly categoryService: CategoryService) { }
 
@@ -66,6 +69,7 @@ export class CategoryController {
     }
 
     @Delete(':id')
+    @Roles(Role.ADMIN)
     remove(@Param('id') id: string) {
         return this.categoryService.remove(id);
     }

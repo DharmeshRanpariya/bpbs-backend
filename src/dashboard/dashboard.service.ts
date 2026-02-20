@@ -15,7 +15,28 @@ export class DashboardService {
         @InjectModel(Order.name) private orderModel: Model<Order>,
     ) { }
 
-    async getStats() {
+    async getStats(period: string = 'thisWeek') {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const tomorrow = new Date(today);
+        tomorrow.setDate(today.getDate() + 1);
+
+        // Calculate Monday of the current week
+        const currentMonday = new Date(today);
+        const currentDay = currentMonday.getDay();
+        const diffToMonday = currentMonday.getDate() - currentDay + (currentDay === 0 ? -6 : 1);
+        currentMonday.setDate(diffToMonday);
+        currentMonday.setHours(0, 0, 0, 0);
+
+        let startOfWeek = new Date(currentMonday);
+        let endOfWeek = new Date(currentMonday);
+        endOfWeek.setDate(currentMonday.getDate() + 7);
+
+        if (period === 'lastWeek') {
+            startOfWeek.setDate(startOfWeek.getDate() - 7);
+            endOfWeek.setDate(endOfWeek.getDate() - 7);
+        }
+
         const [
             userCount,
             schoolCount,
@@ -24,8 +45,11 @@ export class DashboardService {
             rescheduledVisit,
             totalOrder,
             pendingOrder,
+            partialOrder,
             completeOrder,
-            revenueResult
+            revenueResult,
+            todayOrderList,
+            weeklyVisitResult
         ] = await Promise.all([
             this.userModel.countDocuments(),
             this.schoolModel.countDocuments(),
@@ -34,14 +58,44 @@ export class DashboardService {
             this.visitModel.countDocuments({ status: 'rescheduled' }),
             this.orderModel.countDocuments(),
             this.orderModel.countDocuments({ status: 'Pending' }),
+            this.orderModel.countDocuments({ status: 'Partial' }),
             this.orderModel.countDocuments({ status: 'Completed' }),
             this.orderModel.aggregate([
                 { $match: { status: 'Completed' } },
                 { $group: { _id: null, total: { $sum: '$totalPayment' } } }
+            ]),
+            this.orderModel.find({
+                createdAt: { $gte: today, $lt: tomorrow }
+            })
+                .populate('userId', 'username')
+                .populate('schoolId', 'schoolName')
+                .sort({ createdAt: -1 }),
+            this.visitModel.aggregate([
+                {
+                    $match: {
+                        scheduleDate: { $gte: startOfWeek, $lt: endOfWeek }
+                    }
+                },
+                {
+                    $group: {
+                        _id: { $dayOfWeek: "$scheduleDate" },
+                        count: { $sum: 1 }
+                    }
+                }
             ])
         ]);
 
         const totalRevenue = revenueResult.length > 0 ? revenueResult[0].total : 0;
+
+        // Process weekly trends to ensure all days are present
+        const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        const weeklyVisitTrends = [1, 2, 3, 4, 5, 6, 0].map((dayIndex) => {
+            const result = weeklyVisitResult.find(r => r._id === dayIndex + 1);
+            return {
+                day: days[dayIndex],
+                count: result ? result.count : 0
+            };
+        });
 
         return {
             success: true,
@@ -55,7 +109,10 @@ export class DashboardService {
                 totalOrder,
                 totalRevenue,
                 pendingOrder,
-                completeOrder
+                partialOrder,
+                completeOrder,
+                todayOrderList,
+                weeklyVisitTrends
             }
         };
     }

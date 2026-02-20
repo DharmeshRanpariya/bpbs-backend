@@ -18,13 +18,37 @@ export class OrderService {
 
     async create(createOrderDto: CreateOrderDto, imagePath?: string) {
         try {
+            // 1. Validate Stock Before Creating Order
+            for (const item of createOrderDto.orderItems) {
+                for (const bookItem of item.books) {
+                    const book = await this.bookModel.findById(bookItem.bookId);
+
+                    if (!book) {
+                        return {
+                            success: false,
+                            message: `Book not found`,
+                            data: null
+                        };
+                    }
+
+                    if (book.stock < bookItem.quantity) {
+                        return {
+                            success: false,
+                            message: `Insufficient stock for book: ${book.name}. Available: ${book.stock}, Requested: ${bookItem.quantity}`,
+                            data: null
+                        };
+                    }
+                }
+            }
+
+            // 2. Create Order if stock is available
             const newOrder = new this.orderModel({
                 ...createOrderDto,
                 image: imagePath || createOrderDto.image
             });
             const data = await newOrder.save();
 
-            // Update User with the new order entry
+            // 3. Update User with the new order entry
             await this.userModel.findByIdAndUpdate(
                 createOrderDto.userId,
                 {
@@ -45,7 +69,7 @@ export class OrderService {
                 { new: true }
             );
 
-            // Update Book stock
+            // 4. Update Book stock (Decrement)
             for (const item of createOrderDto.orderItems) {
                 for (const bookItem of item.books) {
                     await this.bookModel.findByIdAndUpdate(
@@ -420,6 +444,8 @@ export class OrderService {
 
             if (paymentStatus === 'Paid') {
                 await this.orderModel.findByIdAndUpdate(orderId, { status: 'Completed' });
+            } else if (paymentStatus === 'Partial') {
+                await this.orderModel.findByIdAndUpdate(orderId, { status: 'Partial' });
             }
 
             return {
