@@ -4,6 +4,7 @@ import { Model, Types } from 'mongoose';
 import { Order } from './entity/order.entity';
 import { User } from '../user/entity/user.entity';
 import { Book } from '../book/entity/book.entity';
+import { School } from '../school/entity/school.entity';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
 import { ProcessPaymentDto } from './dto/process-payment.dto';
@@ -13,7 +14,8 @@ export class OrderService {
     constructor(
         @InjectModel(Order.name) private orderModel: Model<Order>,
         @InjectModel(User.name) private userModel: Model<User>,
-        @InjectModel(Book.name) private bookModel: Model<Book>
+        @InjectModel(Book.name) private bookModel: Model<Book>,
+        @InjectModel(School.name) private schoolModel: Model<School>
     ) { }
 
     async create(createOrderDto: CreateOrderDto, imagePath?: string) {
@@ -93,15 +95,54 @@ export class OrderService {
         }
     }
 
-    async findAll() {
+    async findAll(search?: string) {
         try {
-            const data = await this.orderModel.find()
-                .populate('userId', 'username email')
-                .populate('schoolId', 'schoolName address')
-                .populate('orderItems.categoryId', 'name')
-                .populate('orderItems.books.bookId', 'name price')
-                .exec();
-            const ordersWithStats = data.map(order => {
+            let filter: any = {};
+
+            if (search) {
+                const [matchingSchools, matchingUsers] = await Promise.all([
+                    this.schoolModel.find({ schoolName: { $regex: search, $options: 'i' } }).select('_id'),
+                    this.userModel.find({ username: { $regex: search, $options: 'i' } }).select('_id')
+                ]);
+
+                filter = {
+                    $or: [
+                        { schoolId: { $in: matchingSchools.map(s => s._id) } },
+                        { userId: { $in: matchingUsers.map(u => u._id) } }
+                    ]
+                };
+            }
+
+            const [orders, stats] = await Promise.all([
+                this.orderModel.find(filter)
+                    .populate('userId', 'username email')
+                    .populate('schoolId', 'schoolName address')
+                    .populate('orderItems.categoryId', 'name')
+                    .populate('orderItems.books.bookId', 'name price')
+                    .sort({ createdAt: -1 })
+                    .exec(),
+                this.orderModel.aggregate([
+                    { $match: filter },
+                    {
+                        $group: {
+                            _id: null,
+                            totalOrder: { $sum: 1 },
+                            pendingOrder: { $sum: { $cond: [{ $eq: ["$status", "Pending"] }, 1, 0] } },
+                            partialOrder: { $sum: { $cond: [{ $eq: ["$status", "Partial"] }, 1, 0] } },
+                            completeOrder: { $sum: { $cond: [{ $eq: ["$status", "Completed"] }, 1, 0] } }
+                        }
+                    }
+                ])
+            ]);
+
+            const orderStats = stats[0] || {
+                totalOrder: 0,
+                pendingOrder: 0,
+                partialOrder: 0,
+                completeOrder: 0
+            };
+
+            const ordersWithInfo = orders.map(order => {
                 const totalCategories = order.orderItems.length;
                 const totalBooks = order.orderItems.reduce((acc, category) => {
                     return acc + category.books.reduce((sum, book) => sum + book.quantity, 0);
@@ -116,7 +157,8 @@ export class OrderService {
             return {
                 success: true,
                 message: 'Orders fetched successfully',
-                data: ordersWithStats,
+                data: ordersWithInfo,
+                stats: orderStats
             };
         } catch (error) {
             return {

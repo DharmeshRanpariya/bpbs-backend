@@ -6,6 +6,7 @@ import { Order } from '../order/entity/order.entity';
 import { Visit } from '../visit/entity/visit.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { School } from '../school/entity/school.entity';
+import { Notification } from '../notification/entity/notification.entity';
 import * as bcrypt from 'bcrypt';
 import { normalizeZone } from '../common/utils/zone-normalization.util';
 
@@ -16,6 +17,7 @@ export class UserService {
         @InjectModel(Order.name) private orderModel: Model<Order>,
         @InjectModel(Visit.name) private visitModel: Model<Visit>,
         @InjectModel(School.name) private schoolModel: Model<School>,
+        @InjectModel(Notification.name) private notificationModel: Model<Notification>,
     ) { }
 
     async create(createUserDto: CreateUserDto, profilePhotoPath?: string) {
@@ -189,6 +191,66 @@ export class UserService {
             success: true,
             message: `User status changed to ${user.status}`,
             data,
+        };
+    }
+
+    async getUserActivity(userId: string) {
+        const user = await this.userModel.findById(userId).exec();
+        if (!user) {
+            throw new NotFoundException(`User with ID ${userId} not found`);
+        }
+
+        const userObjectId = user._id;
+        const userIdStr = userObjectId.toString();
+        const userMatchQuery = { $in: [userObjectId, userIdStr] };
+
+        const startOfDay = new Date();
+        startOfDay.setHours(0, 0, 0, 0);
+        const endOfDay = new Date();
+        endOfDay.setHours(23, 59, 59, 999);
+
+        const [
+            todayOrders,
+            todayVisits,
+            allVisits,
+            allOrders,
+            assignedSchools,
+            notifications
+        ] = await Promise.all([
+            this.orderModel.find({
+                userId: userMatchQuery,
+                createdAt: { $gte: startOfDay, $lte: endOfDay }
+            }).populate('schoolId', 'schoolName').exec(),
+            this.visitModel.find({
+                userId: userMatchQuery,
+                scheduleDate: { $gte: startOfDay, $lte: endOfDay }
+            }).populate('schoolId', 'schoolName').exec(),
+            this.visitModel.find({ userId: userMatchQuery })
+                .populate('schoolId', 'schoolName')
+                .sort({ scheduleDate: -1 }).exec(),
+            this.orderModel.find({ userId: userMatchQuery })
+                .populate('schoolId', 'schoolName')
+                .sort({ createdAt: -1 }).exec(),
+            this.schoolModel.find({ zone: user.assignedZone }).exec(),
+            this.notificationModel.find({ userId: userMatchQuery })
+                .sort({ createdAt: -1 }).limit(20).exec()
+        ]);
+
+        return {
+            success: true,
+            message: 'User activity fetched successfully',
+            data: {
+                todayActivity: {
+                    orders: todayOrders,
+                    visits: todayVisits,
+                    orderCount: todayOrders.length,
+                    visitCount: todayVisits.length
+                },
+                allVisits,
+                allOrders,
+                assignedSchools,
+                notifications
+            }
         };
     }
 }

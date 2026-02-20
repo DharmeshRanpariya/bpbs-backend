@@ -106,4 +106,10 @@ export class UserController {
     async toggleStatus(@Param('id') id: string) {
         return this.userService.toggleStatus(id);
     }
+
+    @Get('activity')
+    @UseGuards(JwtAuthGuard)
+    async getActivity(@Request() req) {
+        return this.userService.getUserActivity(req.user.userId);
+    }
 }

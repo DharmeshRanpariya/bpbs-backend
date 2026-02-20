@@ -16,12 +16,13 @@ export class AttendanceController {
     async getMyMonthly(
         @Req() req: any,
         @Query('year') year: number,
-        @Query('month') month: number
+        @Query('month') month: number,
+        @Query('userId') userId: string
     ) {
-        const userId = req.user.userId;
-        const currentYear = year || new Date().getFullYear();
-        const currentMonth = month || (new Date().getMonth() + 1);
+        const targetUserId = userId || req.user.userId;
+        const currentYear = Number(year) || new Date().getFullYear();
+        const currentMonth = Number(month) || (new Date().getMonth() + 1);
 
-        return this.attendanceService.getMonthAttendance(userId, currentYear, currentMonth);
+        return this.attendanceService.getMonthAttendance(targetUserId, currentYear, currentMonth);
     }
 }

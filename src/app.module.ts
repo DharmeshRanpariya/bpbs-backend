@@ -17,6 +17,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { NotificationModule } from './notification/notification.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { AttendanceModule } from './attendance/attendance.module';
+import { ZoneModule } from './zone/zone.module';
 
 @Module({
   imports: [
@@ -41,6 +42,7 @@ import { AttendanceModule } from './attendance/attendance.module';
     CategoryModule,
     BookModule,
     OrderModule,
+    ZoneModule,
   ],
   controllers: [AppController],
   providers: [AppService],

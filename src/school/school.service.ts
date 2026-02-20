@@ -74,13 +74,14 @@ export class SchoolService {
             throw new NotFoundException(`School with ID ${id} not found`);
         }
 
-        const [ordersCount, visits, totalCompleteVisit, totalPendingVisit] = await Promise.all([
-            this.orderModel.countDocuments({ schoolId: id }),
+        const [orders, visits, totalCompleteVisit, totalPendingVisit] = await Promise.all([
+            this.orderModel.find({ schoolId: id }).sort({ createdAt: -1 }).populate('userId', 'username').exec(),
             this.visitModel.find({ schoolId: id }).sort({ createdAt: -1 }).populate('userId', 'username').exec(),
             this.visitModel.countDocuments({ schoolId: id, status: 'completed' }),
             this.visitModel.countDocuments({ schoolId: id, status: 'pending' }),
         ]);
 
+        const ordersCount = orders.length;
         const totalVisit = visits.length;
 
         // Determine last activity and next schedule date
@@ -100,9 +101,11 @@ export class SchoolService {
             }
         }
 
-        const latestOrder = await this.orderModel.findOne({ schoolId: id }).sort({ createdAt: -1 }).exec();
-        if (latestOrder && (!lastActivity || (latestOrder as any).createdAt > lastActivity)) {
-            lastActivity = (latestOrder as any).createdAt as Date;
+        if (orders.length > 0) {
+            const latestOrder = orders[0];
+            if (!lastActivity || (latestOrder as any).createdAt > lastActivity) {
+                lastActivity = (latestOrder as any).createdAt as Date;
+            }
         }
 
         return {
@@ -110,6 +113,8 @@ export class SchoolService {
             message: 'School fetched successfully',
             data: {
                 ...school.toObject(),
+                visitList: visits,
+                orderList: orders,
                 stats: {
                     ordersCount,
                     totalVisit,
@@ -117,7 +122,6 @@ export class SchoolService {
                     totalPendingVisit,
                     lastActivity,
                     nextScheduleDate,
-                    visits
                 }
             },
         };

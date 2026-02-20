@@ -45,8 +45,8 @@ export class CategoryController {
     }
 
     @Get()
-    findAll() {
-        return this.categoryService.findAll();
+    findAll(@Query('search') search: string) {
+        return this.categoryService.findAll(search);
     }
 
     @Get(':id')

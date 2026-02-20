@@ -47,8 +47,8 @@ export class OrderController {
     }
 
     @Get()
-    findAll() {
-        return this.orderService.findAll();
+    findAll(@Query('search') search: string) {
+        return this.orderService.findAll(search);
     }
 
     @Get('my-orders')

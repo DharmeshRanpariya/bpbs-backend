@@ -86,9 +86,14 @@ export class CategoryService {
         }
     }
 
-    async findAll() {
+    async findAll(search?: string) {
         try {
-            const data = await this.categoryModel.find().exec();
+            const filter: any = {};
+            if (search) {
+                filter.name = { $regex: search, $options: 'i' };
+            }
+
+            const data = await this.categoryModel.find(filter).exec();
             return {
                 success: true,
                 message: 'Categories fetched successfully',
