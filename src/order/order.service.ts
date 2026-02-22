@@ -95,44 +95,133 @@ export class OrderService {
         }
     }
 
+    // async findAll(search?: string) {
+    //     try {
+    //         let filter: any = {};
+
+    //         if (search) {
+    //             const [matchingSchools, matchingUsers] = await Promise.all([
+    //                 this.schoolModel.find({ schoolName: { $regex: search, $options: 'i' } }).select('_id'),
+    //                 this.userModel.find({ username: { $regex: search, $options: 'i' } }).select('_id')
+    //             ]);
+
+    //             filter = {
+    //                 $or: [
+    //                     { schoolId: { $in: matchingSchools.map(s => s._id) } },
+    //                     { userId: { $in: matchingUsers.map(u => u._id) } }
+    //                 ]
+    //             };
+    //         }
+
+    //         const [orders, stats] = await Promise.all([
+    //             this.orderModel.find({ ...filter })
+    //                 .populate('userId', 'username email')
+    //                 .populate('schoolId', 'schoolName address')
+    //                 .populate('orderItems.categoryId', 'name')
+    //                 .populate('orderItems.books.bookId', 'name price')
+    //                 .sort({ createdAt: -1 })
+    //                 .exec(),
+    //             this.orderModel.aggregate([
+    //                 { $match: { ...filter } },
+    //                 {
+    //                     $group: {
+    //                         _id: null,
+    //                         totalOrder: { $sum: 1 },
+    //                         pendingOrder: { $sum: { $cond: [{ $eq: ["$status", "Pending"] }, 1, 0] } },
+    //                         partialOrder: { $sum: { $cond: [{ $eq: ["$status", "Partial"] }, 1, 0] } },
+    //                         completeOrder: { $sum: { $cond: [{ $eq: ["$status", "Completed"] }, 1, 0] } }
+    //                     }
+    //                 }
+    //             ])
+    //         ]);
+
+    //         const orderStats = stats[0] || {
+    //             totalOrder: 0,
+    //             pendingOrder: 0,
+    //             partialOrder: 0,
+    //             completeOrder: 0
+    //         };
+
+    //         const ordersWithInfo = orders.map(order => {
+    //             const totalCategories = order.orderItems.length;
+    //             const totalBooks = order.orderItems.reduce((acc, category) => {
+    //                 return acc + category.books.reduce((sum, book) => sum + book.quantity, 0);
+    //             }, 0);
+    //             return {
+    //                 ...order.toObject(),
+    //                 totalCategories,
+    //                 totalBooks
+    //             };
+    //         });
+
+    //         return {
+    //             success: true,
+    //             message: 'Orders fetched successfully.',
+    //             data: ordersWithInfo,
+    //             stats: orderStats
+    //         };
+    //     } catch (error) {
+    //         return {
+    //             success: false,
+    //             message: error.message || 'Error occurred while fetching orders',
+    //             data: null,
+    //         };
+    //     }
+    // }
+
     async findAll(search?: string) {
         try {
+
             let filter: any = {};
 
             if (search) {
-                const [matchingSchools, matchingUsers] = await Promise.all([
-                    this.schoolModel.find({ schoolName: { $regex: search, $options: 'i' } }).select('_id'),
-                    this.userModel.find({ username: { $regex: search, $options: 'i' } }).select('_id')
-                ]);
 
-                filter = {
-                    $or: [
-                        { schoolId: { $in: matchingSchools.map(s => s._id) } },
-                        { userId: { $in: matchingUsers.map(u => u._id) } }
-                    ]
-                };
+                const matchingSchools = await this.schoolModel
+                    .find({ schoolName: { $regex: search, $options: 'i' } })
+                    .distinct('_id');
+
+                const matchingUsers = await this.userModel
+                    .find({ username: { $regex: search, $options: 'i' } })
+                    .distinct('_id');
+
+                const orConditions: any[] = [];
+
+                if (matchingSchools.length > 0) {
+                    orConditions.push({ schoolId: { $in: matchingSchools } });
+                }
+
+                if (matchingUsers.length > 0) {
+                    orConditions.push({ userId: { $in: matchingUsers } });
+                }
+
+                if (orConditions.length > 0) {
+                    filter = { $or: orConditions };
+                }
             }
 
-            const [orders, stats] = await Promise.all([
-                this.orderModel.find({ ...filter, userId: { $nin: [null, ""] } } as any)
-                    .populate('userId', 'username email')
-                    .populate('schoolId', 'schoolName address')
-                    .populate('orderItems.categoryId', 'name')
-                    .populate('orderItems.books.bookId', 'name price')
-                    .sort({ createdAt: -1 })
-                    .exec(),
-                this.orderModel.aggregate([
-                    { $match: { ...filter, userId: { $nin: [null, ""] } } },
-                    {
-                        $group: {
-                            _id: null,
-                            totalOrder: { $sum: 1 },
-                            pendingOrder: { $sum: { $cond: [{ $eq: ["$status", "Pending"] }, 1, 0] } },
-                            partialOrder: { $sum: { $cond: [{ $eq: ["$status", "Partial"] }, 1, 0] } },
-                            completeOrder: { $sum: { $cond: [{ $eq: ["$status", "Completed"] }, 1, 0] } }
-                        }
+            const ordersPromise = this.orderModel.find(filter)
+                .populate('userId', 'username email')
+                .populate('schoolId', 'schoolName address')
+                .populate('orderItems.categoryId', 'name')
+                .populate('orderItems.books.bookId', 'name price')
+                .sort({ createdAt: -1 });
+
+            const statsPromise = this.orderModel.aggregate([
+                { $match: filter },
+                {
+                    $group: {
+                        _id: null,
+                        totalOrder: { $sum: 1 },
+                        pendingOrder: { $sum: { $cond: [{ $eq: ["$status", "Pending"] }, 1, 0] } },
+                        partialOrder: { $sum: { $cond: [{ $eq: ["$status", "Partial"] }, 1, 0] } },
+                        completeOrder: { $sum: { $cond: [{ $eq: ["$status", "Completed"] }, 1, 0] } }
                     }
-                ])
+                }
+            ]);
+
+            const [orders, stats] = await Promise.all([
+                ordersPromise,
+                statsPromise
             ]);
 
             const orderStats = stats[0] || {
@@ -143,10 +232,12 @@ export class OrderService {
             };
 
             const ordersWithInfo = orders.map(order => {
-                const totalCategories = order.orderItems.length;
-                const totalBooks = order.orderItems.reduce((acc, category) => {
+                const totalCategories = order.orderItems?.length || 0;
+
+                const totalBooks = order.orderItems?.reduce((acc, category) => {
                     return acc + category.books.reduce((sum, book) => sum + book.quantity, 0);
-                }, 0);
+                }, 0) || 0;
+
                 return {
                     ...order.toObject(),
                     totalCategories,
@@ -160,6 +251,7 @@ export class OrderService {
                 data: ordersWithInfo,
                 stats: orderStats
             };
+
         } catch (error) {
             return {
                 success: false,
