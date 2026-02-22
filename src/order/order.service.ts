@@ -95,94 +95,21 @@ export class OrderService {
         }
     }
 
-    // async findAll(search?: string) {
-    //     try {
-    //         let filter: any = {};
-
-    //         if (search) {
-    //             const [matchingSchools, matchingUsers] = await Promise.all([
-    //                 this.schoolModel.find({ schoolName: { $regex: search, $options: 'i' } }).select('_id'),
-    //                 this.userModel.find({ username: { $regex: search, $options: 'i' } }).select('_id')
-    //             ]);
-
-    //             filter = {
-    //                 $or: [
-    //                     { schoolId: { $in: matchingSchools.map(s => s._id) } },
-    //                     { userId: { $in: matchingUsers.map(u => u._id) } }
-    //                 ]
-    //             };
-    //         }
-
-    //         const [orders, stats] = await Promise.all([
-    //             this.orderModel.find({ ...filter })
-    //                 .populate('userId', 'username email')
-    //                 .populate('schoolId', 'schoolName address')
-    //                 .populate('orderItems.categoryId', 'name')
-    //                 .populate('orderItems.books.bookId', 'name price')
-    //                 .sort({ createdAt: -1 })
-    //                 .exec(),
-    //             this.orderModel.aggregate([
-    //                 { $match: { ...filter } },
-    //                 {
-    //                     $group: {
-    //                         _id: null,
-    //                         totalOrder: { $sum: 1 },
-    //                         pendingOrder: { $sum: { $cond: [{ $eq: ["$status", "Pending"] }, 1, 0] } },
-    //                         partialOrder: { $sum: { $cond: [{ $eq: ["$status", "Partial"] }, 1, 0] } },
-    //                         completeOrder: { $sum: { $cond: [{ $eq: ["$status", "Completed"] }, 1, 0] } }
-    //                     }
-    //                 }
-    //             ])
-    //         ]);
-
-    //         const orderStats = stats[0] || {
-    //             totalOrder: 0,
-    //             pendingOrder: 0,
-    //             partialOrder: 0,
-    //             completeOrder: 0
-    //         };
-
-    //         const ordersWithInfo = orders.map(order => {
-    //             const totalCategories = order.orderItems.length;
-    //             const totalBooks = order.orderItems.reduce((acc, category) => {
-    //                 return acc + category.books.reduce((sum, book) => sum + book.quantity, 0);
-    //             }, 0);
-    //             return {
-    //                 ...order.toObject(),
-    //                 totalCategories,
-    //                 totalBooks
-    //             };
-    //         });
-
-    //         return {
-    //             success: true,
-    //             message: 'Orders fetched successfully.',
-    //             data: ordersWithInfo,
-    //             stats: orderStats
-    //         };
-    //     } catch (error) {
-    //         return {
-    //             success: false,
-    //             message: error.message || 'Error occurred while fetching orders',
-    //             data: null,
-    //         };
-    //     }
-    // }
-
     async findAll(search?: string) {
         try {
-
             let filter: any = {};
 
-            if (search) {
+            if (search && search.trim() !== '') {
+                const trimmedSearch = search.trim();
 
-                const matchingSchools = await this.schoolModel
-                    .find({ schoolName: { $regex: search, $options: 'i' } })
-                    .distinct('_id');
-
-                const matchingUsers = await this.userModel
-                    .find({ username: { $regex: search, $options: 'i' } })
-                    .distinct('_id');
+                const [matchingSchools, matchingUsers] = await Promise.all([
+                    this.schoolModel
+                        .find({ schoolName: { $regex: trimmedSearch, $options: 'i' } })
+                        .distinct('_id'),
+                    this.userModel
+                        .find({ username: { $regex: trimmedSearch, $options: 'i' } })
+                        .distinct('_id')
+                ]);
 
                 const orConditions: any[] = [];
 
@@ -196,7 +123,28 @@ export class OrderService {
 
                 if (orConditions.length > 0) {
                     filter = { $or: orConditions };
+                } else {
+                    // If search was provided but no users or schools matched, 
+                    // return empty results instead of all orders.
+                    return {
+                        success: true,
+                        message: 'No orders found matching the search criteria.',
+                        data: [],
+                        stats: {
+                            totalOrder: 0,
+                            pendingOrder: 0,
+                            partialOrder: 0,
+                            completeOrder: 0
+                        }
+                    };
                 }
+            } else {
+                // Defensive measure: Filter out records with empty strings or nulls which cause populate to crash.
+                // This ensures we only fetch orders that can be safely populated.
+                filter = {
+                    userId: { $nin: ["", null] },
+                    schoolId: { $nin: ["", null] }
+                };
             }
 
             const ordersPromise = this.orderModel.find(filter)
@@ -253,6 +201,7 @@ export class OrderService {
             };
 
         } catch (error) {
+            console.error('Error in findAll:', error);
             return {
                 success: false,
                 message: error.message || 'Error occurred while fetching orders',
@@ -360,6 +309,14 @@ export class OrderService {
 
     async getUserOrdersWithFilters(userId: string, search?: string, status?: string) {
         try {
+            if (!userId || userId.trim() === '') {
+                return {
+                    success: false,
+                    message: 'User ID is required',
+                    data: null,
+                };
+            }
+
             const userObjectId = new Types.ObjectId(userId);
             const userMatchQuery = { $in: [userObjectId, userId] };
 
@@ -403,6 +360,14 @@ export class OrderService {
 
     async findByUserIdWithStats(userId: string, search?: string) {
         try {
+            if (!userId || userId.trim() === '') {
+                return {
+                    success: false,
+                    message: 'User ID is required',
+                    data: null,
+                };
+            }
+
             console.log('findByUserIdWithStats - Incoming userId:', userId);
             let userObjectId: any = userId;
             if (Types.ObjectId.isValid(userId)) {
