@@ -88,4 +88,13 @@ export class BookService {
             data,
         };
     }
+
+    async getBookList() {
+        const data = await this.bookModel.find({}, '_id name category').exec();
+        return {
+            success: true,
+            message: 'Book list fetched successfully',
+            data,
+        };
+    }
 }

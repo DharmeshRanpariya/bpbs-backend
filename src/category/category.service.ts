@@ -186,4 +186,13 @@ export class CategoryService {
             };
         }
     }
+
+    async getCategoryList() {
+        const data = await this.categoryModel.find({}, '_id name').exec();
+        return {
+            success: true,
+            message: 'Category list fetched successfully',
+            data,
+        };
+    }
 }

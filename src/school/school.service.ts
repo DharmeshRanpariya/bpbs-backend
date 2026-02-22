@@ -167,4 +167,13 @@ export class SchoolService {
             data,
         };
     }
+
+    async getSchoolList() {
+        const data = await this.schoolModel.find({}, '_id schoolName').exec();
+        return {
+            success: true,
+            message: 'School list fetched successfully',
+            data,
+        };
+    }
 }

@@ -112,4 +112,10 @@ export class UserController {
     async getActivity(@Request() req) {
         return this.userService.getUserActivity(req.user.userId);
     }
+
+    @Get('dropdown/list')
+    @UseGuards(JwtAuthGuard)
+    async getList() {
+        return this.userService.getUserList();
+    }
 }

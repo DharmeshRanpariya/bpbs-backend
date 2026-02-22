@@ -41,4 +41,9 @@ export class SchoolController {
     remove(@Param('id') id: string) {
         return this.schoolService.remove(id);
     }
+
+    @Get('dropdown/list')
+    getList() {
+        return this.schoolService.getSchoolList();
+    }
 }

@@ -90,4 +90,9 @@ export class BookController {
     ) {
         return this.bookService.findByCategory(categoryId, search);
     }
+
+    @Get('dropdown/list')
+    getList() {
+        return this.bookService.getBookList();
+    }
 }

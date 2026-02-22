@@ -253,4 +253,13 @@ export class UserService {
             }
         };
     }
+
+    async getUserList() {
+        const data = await this.userModel.find({}, '_id username').exec();
+        return {
+            success: true,
+            message: 'User list fetched successfully',
+            data,
+        };
+    }
 }

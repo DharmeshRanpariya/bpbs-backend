@@ -73,4 +73,9 @@ export class CategoryController {
     remove(@Param('id') id: string) {
         return this.categoryService.remove(id);
     }
+
+    @Get('dropdown/list')
+    getList() {
+        return this.categoryService.getCategoryList();
+    }
 }
