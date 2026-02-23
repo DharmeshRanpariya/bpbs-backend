@@ -6,12 +6,20 @@ import { existsSync, mkdirSync } from 'fs';
 export const multerOptions = {
   // Check the mimetypes to allow only images, videos and pdfs
   fileFilter: (req: any, file: any, cb: any) => {
-    if (file.mimetype.match(/\/(jpg|jpeg|png|gif|mp4|mpeg|quicktime|x-matroska|webm|pdf)$/)) {
+    // Define allowed file types (extensions and mimetypes)
+    const allowedPattern = /\.(jpg|jpeg|png|gif|webp|mp4|mpeg|quicktime|x-matroska|webm|pdf)$/i;
+    const allowedMimePattern = /\/(jpg|jpeg|png|gif|webp|mp4|mpeg|quicktime|x-matroska|webm|pdf)$/i;
+
+    if (
+      (file.mimetype && file.mimetype.match(allowedMimePattern)) ||
+      (file.originalname && file.originalname.match(allowedPattern))
+    ) {
       // Allow storage of file
       cb(null, true);
     } else {
       // Reject file
-      cb(new HttpException(`Unsupported file type ${extname(file.originalname)}. Only images, videos and PDFs are allowed.`, HttpStatus.BAD_REQUEST), false);
+      const extension = extname(file.originalname);
+      cb(new HttpException(`Unsupported file type ${extension}. Only images, videos and PDFs are allowed.`, HttpStatus.BAD_REQUEST), false);
     }
   },
   // Storage properties
