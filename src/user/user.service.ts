@@ -22,13 +22,28 @@ export class UserService {
 
     async create(createUserDto: CreateUserDto, profilePhotoPath?: string) {
         const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
+        const normalizedZone = createUserDto.assignedZone ? normalizeZone(createUserDto.assignedZone) : '';
         const newUser = new this.userModel({
             ...createUserDto,
             password: hashedPassword,
             profilePhoto: profilePhotoPath,
-            assignedZone: createUserDto.assignedZone ? normalizeZone(createUserDto.assignedZone) : '',
+            assignedZone: normalizedZone,
         });
         const data = await newUser.save();
+
+        if (normalizedZone) {
+            const schools = await this.schoolModel.find({ zone: normalizedZone }).exec();
+            if (schools.length > 0) {
+                const visits = schools.map(school => ({
+                    userId: data._id,
+                    schoolId: school._id,
+                    scheduleDate: new Date(),
+                    status: 'pending'
+                }));
+                await this.visitModel.insertMany(visits);
+            }
+        }
+
         return {
             success: true,
             message: 'User created successfully',

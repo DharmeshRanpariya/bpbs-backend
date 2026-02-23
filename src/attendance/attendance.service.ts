@@ -65,6 +65,9 @@ export class AttendanceService {
             });
 
             const fullMonthData: any[] = [];
+            let presentCount = 0;
+            let absentCount = 0;
+            let holidayCount = 0;
             const today = new Date();
             today.setHours(0, 0, 0, 0);
 
@@ -73,13 +76,19 @@ export class AttendanceService {
                 const dayOfWeek = d.getDay(); // 0 is Sunday
 
                 if (attendanceMap.has(dateString)) {
-                    fullMonthData.push(attendanceMap.get(dateString));
+                    const record = attendanceMap.get(dateString);
+                    if (record.status === 'present') presentCount++;
+                    if (record.status === 'absent') absentCount++;
+                    fullMonthData.push(record);
                 } else {
                     let status = 'absent';
                     if (dayOfWeek === 0) {
-                        status = 'holiday'; // Sunday is holiday
+                        status = 'holiday';
+                        holidayCount++;
                     } else if (d > today) {
-                        status = 'upcoming'; // Don't mark future days as absent yet
+                        status = 'upcoming';
+                    } else {
+                        absentCount++;
                     }
 
                     fullMonthData.push({
@@ -90,10 +99,23 @@ export class AttendanceService {
                 }
             }
 
+            const totalDaysInMonth = fullMonthData.length;
+            const workingDaysSofar = presentCount + absentCount;
+            const attendancePercentage = workingDaysSofar > 0
+                ? ((presentCount / workingDaysSofar) * 100).toFixed(2)
+                : "0.00";
+
             return {
                 success: true,
                 message: 'Monthly attendance fetched successfully',
-                data: fullMonthData
+                data: fullMonthData,
+                stats: {
+                    totalDaysInMonth,
+                    presentDays: presentCount,
+                    absentDays: absentCount,
+                    holidayDays: holidayCount,
+                    attendancePercentage: parseFloat(attendancePercentage)
+                }
             };
         } catch (error) {
             return {

@@ -18,6 +18,7 @@ import { NotificationModule } from './notification/notification.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { AttendanceModule } from './attendance/attendance.module';
 import { ZoneModule } from './zone/zone.module';
+import { AccountModule } from './account/account.module';
 
 @Module({
   imports: [
@@ -43,6 +44,7 @@ import { ZoneModule } from './zone/zone.module';
     BookModule,
     OrderModule,
     ZoneModule,
+    AccountModule,
   ],
   controllers: [AppController],
   providers: [AppService],
