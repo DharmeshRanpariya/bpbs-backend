@@ -34,10 +34,18 @@ export class VisitService {
 
     async create(createVisitDto: CreateVisitDto) {
         try {
+            // Prepare robust IDs to handle both string and ObjectId formats
+            let userObjectId: any = createVisitDto.userId;
+            let schoolObjectId: any = createVisitDto.schoolId;
+            try {
+                if (Types.ObjectId.isValid(createVisitDto.userId)) userObjectId = new Types.ObjectId(createVisitDto.userId);
+                if (Types.ObjectId.isValid(createVisitDto.schoolId)) schoolObjectId = new Types.ObjectId(createVisitDto.schoolId);
+            } catch (e) { }
+
             // Check if a visit with same userId and schoolId already exists and is NOT completed
             const existingVisit = await this.visitModel.findOne({
-                userId: createVisitDto.userId,
-                schoolId: createVisitDto.schoolId,
+                userId: { $in: [createVisitDto.userId, userObjectId] },
+                schoolId: { $in: [createVisitDto.schoolId, schoolObjectId] },
                 status: { $ne: 'completed' }
             }).exec();
 
