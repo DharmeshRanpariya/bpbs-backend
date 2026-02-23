@@ -34,14 +34,15 @@ export class VisitService {
 
     async create(createVisitDto: CreateVisitDto) {
         try {
-            // Check if a visit with same userId and schoolId already exists
+            // Check if a visit with same userId and schoolId already exists and is NOT completed
             const existingVisit = await this.visitModel.findOne({
                 userId: createVisitDto.userId,
-                schoolId: createVisitDto.schoolId
+                schoolId: createVisitDto.schoolId,
+                status: { $ne: 'completed' }
             }).exec();
 
             if (existingVisit) {
-                // If it exists, append new visitDetails
+                // If a non-completed visit exists, append new visitDetails to it
                 if (createVisitDto.visitDetails && createVisitDto.visitDetails.length > 0) {
                     const mappedDetails = createVisitDto.visitDetails.map(detail => ({
                         ...detail,
@@ -66,7 +67,8 @@ export class VisitService {
                 };
             }
 
-            // Apply status logic for new visit
+            // If no non-completed visit exists (either no visit at all, or existing visit is 'completed'),
+            // create a new visit
             let status = 'pending';
             if (createVisitDto.visitDetails && createVisitDto.visitDetails.length > 0) {
                 status = this.calculateStatus(createVisitDto.visitDetails);
