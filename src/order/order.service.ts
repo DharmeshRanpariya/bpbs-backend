@@ -8,6 +8,7 @@ import { School } from '../school/entity/school.entity';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
 import { ProcessPaymentDto } from './dto/process-payment.dto';
+import * as XLSX from 'xlsx';
 
 @Injectable()
 export class OrderService {
@@ -368,17 +369,14 @@ export class OrderService {
                 };
             }
 
-            console.log('findByUserIdWithStats - Incoming userId:', userId);
             let userObjectId: any = userId;
             if (Types.ObjectId.isValid(userId)) {
                 userObjectId = new Types.ObjectId(userId);
             }
             const matchQuery: any = { userId: { $in: [userId, userObjectId] } };
-            console.log('findByUserIdWithStats - matchQuery:', JSON.stringify(matchQuery));
             let orders;
 
             if (search) {
-                // ... (existing search logic)
                 const matchingOrders = await this.orderModel.aggregate([
                     { $match: matchQuery },
                     {
@@ -414,13 +412,9 @@ export class OrderService {
                     .exec();
             }
 
-            console.log(`findByUserIdWithStats - Found ${orders.length} orders`);
-
             if (orders.length === 0) {
-                // System check for ANY order to see ID structure
                 const anyOrder = await this.orderModel.findOne().lean().exec();
                 if (anyOrder) {
-                    console.log('Order System Check - RAW Order userId:', anyOrder.userId);
                     console.log('Order System Check - RAW Order userId type:', typeof anyOrder.userId);
                 }
             }
@@ -599,6 +593,51 @@ export class OrderService {
                 uniqueBooks: 0,
                 totalCategories: 0
             };
+        }
+    }
+
+    async exportOrdersToExcel(userId: string) {
+        try {
+            const userObjectId = new Types.ObjectId(userId);
+            const orders = await this.orderModel.find({ userId: { $in: [userObjectId, userId] } })
+                .populate('schoolId', 'schoolName address')
+                .populate('orderItems.categoryId', 'name')
+                .populate('orderItems.books.bookId', 'name price')
+                .sort({ createdAt: -1 })
+                .exec();
+
+            const flatData: any[] = [];
+            orders.forEach(order => {
+                const schoolName = (order.schoolId as any)?.schoolName || 'N/A';
+                const orderDate = (order as any).createdAt ? new Date((order as any).createdAt).toLocaleDateString() : 'N/A';
+
+                order.orderItems.forEach(item => {
+                    const categoryName = (item.categoryId as any)?.name || 'N/A';
+                    item.books.forEach(book => {
+                        flatData.push({
+                            'Order Date': orderDate,
+                            'School Name': schoolName,
+                            'Category': categoryName,
+                            'Book Name': (book.bookId as any)?.name || 'N/A',
+                            'Quantity': book.quantity,
+                            'Price': (book.bookId as any)?.price || 0,
+                            'Item Total': book.quantity * ((book.bookId as any)?.price || 0),
+                            'Order Total': order.totalPayment,
+                            'Status': order.status
+                        });
+                    });
+                });
+            });
+
+            const worksheet = XLSX.utils.json_to_sheet(flatData);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, 'Orders');
+
+            const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+            return buffer;
+        } catch (error) {
+            console.error('Error exporting orders to excel:', error);
+            throw error;
         }
     }
 }

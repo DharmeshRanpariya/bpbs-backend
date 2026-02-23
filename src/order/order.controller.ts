@@ -11,7 +11,9 @@ import {
     UploadedFile,
     Req,
     Query,
+    Res,
 } from '@nestjs/common';
+import type { Response } from 'express';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { OrderService } from './order.service';
 import { CreateOrderDto } from './dto/create-order.dto';
@@ -68,6 +70,20 @@ export class OrderController {
     ) {
         const userId = req.user.userId;
         return this.orderService.findByUserIdWithStats(userId, search);
+    }
+
+    @Get('export-my-orders')
+    async exportMyOrders(@Req() req: any, @Res() res: Response) {
+        const userId = req.user.userId;
+        const buffer = await this.orderService.exportOrdersToExcel(userId);
+
+        res.set({
+            'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'Content-Disposition': 'attachment; filename="my-orders.xlsx"',
+            'Content-Length': buffer.length,
+        });
+
+        res.end(buffer);
     }
 
     @Get(':id')
