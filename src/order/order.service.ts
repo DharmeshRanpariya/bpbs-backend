@@ -8,7 +8,7 @@ import { School } from '../school/entity/school.entity';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
 import { ProcessPaymentDto } from './dto/process-payment.dto';
-import * as XLSX from 'xlsx';
+import XLSX from 'xlsx';
 
 @Injectable()
 export class OrderService {
