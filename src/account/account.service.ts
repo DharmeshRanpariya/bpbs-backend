@@ -3,7 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { Account } from './entity/account.entity';
 import { CreateAccountDto } from './dto/create-account.dto';
-import XLSX from 'xlsx';
+import * as XLSX from 'xlsx';
 
 @Injectable()
 export class AccountService {
