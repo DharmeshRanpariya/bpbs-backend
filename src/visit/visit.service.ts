@@ -98,10 +98,7 @@ export class VisitService {
             const limit = Number(queryObj.limit) || 10;
             const skip = (page - 1) * limit;
 
-            const filter: any = {
-                userId: { $nin: ["", null] },
-                schoolId: { $nin: ["", null] }
-            };
+            const filter: any = {};
 
             if (queryObj.status) {
                 filter.status = queryObj.status;
@@ -154,11 +151,7 @@ export class VisitService {
 
     async findOne(id: string) {
         try {
-            const data = await this.visitModel.findOne({
-                _id: id,
-                userId: { $nin: ["", null] },
-                schoolId: { $nin: ["", null] }
-            })
+            const data = await this.visitModel.findById(id)
                 .populate('userId', 'username email')
                 .populate('schoolId', 'schoolName address')
                 .exec();
@@ -246,14 +239,8 @@ export class VisitService {
             }
 
             const query: any = {
-                userId: { $in: [userId, userObjectId] },
-                schoolId: { $nin: ["", null] }
+                userId: { $in: [userId, userObjectId] }
             };
-
-            // Prevent crash on populate if userId is empty
-            if (userId === "" || !userId) {
-                query.userId = { $nin: ["", null] };
-            }
 
             if (status) {
                 query.status = status;
