@@ -48,6 +48,9 @@ export class VisitService {
                         date: new Date(detail.date),
                         nextVisitDate: detail.nextVisitDate ? new Date(detail.nextVisitDate) : undefined
                     }));
+                    if (!existingVisit.visitDetails) {
+                        existingVisit.visitDetails = [];
+                    }
                     existingVisit.visitDetails.push(...(mappedDetails as any));
                 }
 
