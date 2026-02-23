@@ -27,7 +27,7 @@ export class Book extends Document {
     @Prop()
     pdf: string;
 
-    @Prop()
+    @Prop({ required: true })
     stock: number;
 
     @Prop()
