@@ -306,10 +306,12 @@ export class VisitService {
         try {
             console.log(userId, schoolId);
             const data = await this.visitModel.find({
-                userId,
-                schoolId,
-                userId: { $nin: ["", null] },
-                schoolId: { $nin: ["", null] }
+                $and: [
+                    { userId },
+                    { schoolId },
+                    { userId: { $nin: ["", null] } },
+                    { schoolId: { $nin: ["", null] } }
+                ]
             })
                 .populate('userId', 'username email')
                 .populate('schoolId')
