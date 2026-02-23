@@ -98,7 +98,10 @@ export class VisitService {
             const limit = Number(queryObj.limit) || 10;
             const skip = (page - 1) * limit;
 
-            const filter: any = {};
+            const filter: any = {
+                userId: { $nin: ["", null] },
+                schoolId: { $nin: ["", null] }
+            };
 
             if (queryObj.status) {
                 filter.status = queryObj.status;
@@ -151,7 +154,11 @@ export class VisitService {
 
     async findOne(id: string) {
         try {
-            const data = await this.visitModel.findById(id)
+            const data = await this.visitModel.findOne({
+                _id: id,
+                userId: { $nin: ["", null] },
+                schoolId: { $nin: ["", null] }
+            })
                 .populate('userId', 'username email')
                 .populate('schoolId', 'schoolName address')
                 .exec();
@@ -239,8 +246,14 @@ export class VisitService {
             }
 
             const query: any = {
-                userId: { $in: [userId, userObjectId] }
+                userId: { $in: [userId, userObjectId] },
+                schoolId: { $nin: ["", null] }
             };
+
+            // Prevent crash on populate if userId is empty
+            if (userId === "" || !userId) {
+                query.userId = { $nin: ["", null] };
+            }
 
             if (status) {
                 query.status = status;
@@ -281,7 +294,10 @@ export class VisitService {
 
     async findBySchool(schoolId: string) {
         try {
-            const data = await this.visitModel.find({ schoolId })
+            const data = await this.visitModel.find({
+                schoolId,
+                userId: { $nin: ["", null] }
+            })
                 .populate('userId', 'username email')
                 .populate('schoolId', 'schoolName address')
                 .exec();
@@ -302,7 +318,12 @@ export class VisitService {
     async findByUserAndSchool(userId: string, schoolId: string) {
         try {
             console.log(userId, schoolId);
-            const data = await this.visitModel.find({ userId, schoolId })
+            const data = await this.visitModel.find({
+                userId,
+                schoolId,
+                userId: { $nin: ["", null] },
+                schoolId: { $nin: ["", null] }
+            })
                 .populate('userId', 'username email')
                 .populate('schoolId')
                 .exec();
@@ -348,8 +369,10 @@ export class VisitService {
 
             // 2. Get ALL visits for these schools
             // We search with both string and ObjectId formats to be 100% sure
+            // and filter out any records with empty userIds to avoid populate crashes
             const visitQuery: any = {
-                schoolId: { $in: [...schoolIdsStrings, ...schoolIdsObjects] }
+                schoolId: { $in: [...schoolIdsStrings, ...schoolIdsObjects] },
+                userId: { $nin: ["", null] }
             };
 
             const visits = await this.visitModel.find(visitQuery)
@@ -424,8 +447,14 @@ export class VisitService {
 
             // Use $in with both string and ObjectId to be safe against inconsistent data
             const query: any = {
-                userId: { $in: [userId, userObjectId] }
+                userId: { $in: [userId, userObjectId] },
+                schoolId: { $nin: ["", null] }
             };
+
+            // Prevent crash on populate if userId is empty
+            if (userId === "" || !userId) {
+                query.userId = { $nin: ["", null] };
+            }
 
             if (year && month) {
                 const startDate = new Date(year, month - 1, 1);
