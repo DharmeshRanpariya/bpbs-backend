@@ -90,7 +90,7 @@ export class BookService {
     }
 
     async getBookList() {
-        const data = await this.bookModel.find({}, '_id name category').exec();
+        const data = await this.bookModel.find({}, '_id name category price stock').exec();
         return {
             success: true,
             message: 'Book list fetched successfully',
