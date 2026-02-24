@@ -35,17 +35,9 @@ export class VisitService {
     async create(createVisitDto: CreateVisitDto) {
         try {
             // Prepare robust IDs to handle both string and ObjectId formats
-            let userObjectId: any = createVisitDto.userId;
-            let schoolObjectId: any = createVisitDto.schoolId;
-            try {
-                if (Types.ObjectId.isValid(createVisitDto.userId)) userObjectId = new Types.ObjectId(createVisitDto.userId);
-                if (Types.ObjectId.isValid(createVisitDto.schoolId)) schoolObjectId = new Types.ObjectId(createVisitDto.schoolId);
-            } catch (e) { }
-
-            // Check if a visit with same userId and schoolId already exists and is NOT completed
             const existingVisit = await this.visitModel.findOne({
-                userId: { $in: [createVisitDto.userId, userObjectId] },
-                schoolId: { $in: [createVisitDto.schoolId, schoolObjectId] },
+                userId: createVisitDto.userId,
+                schoolId: createVisitDto.schoolId,
                 status: { $ne: 'completed' }
             }).exec();
 
@@ -57,9 +49,6 @@ export class VisitService {
                         date: new Date(detail.date),
                         nextVisitDate: detail.nextVisitDate ? new Date(detail.nextVisitDate) : undefined
                     }));
-                    if (!existingVisit.visitDetails) {
-                        existingVisit.visitDetails = [];
-                    }
                     existingVisit.visitDetails.push(...(mappedDetails as any));
                 }
 
