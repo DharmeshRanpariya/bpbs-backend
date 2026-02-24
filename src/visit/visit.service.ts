@@ -113,7 +113,12 @@ export class VisitService {
                 filter.schoolId = { $in: [...matchedSchoolIdsStr, ...matchedSchoolIdsObj] };
             }
 
-            const [visistData, filteredCount, totalVisist, CompleteVisist, pedingVisist, rescheduledVisist] = await Promise.all([
+            const baseFilter: any = {
+                userId: { $nin: ["", null] },
+                schoolId: { $nin: ["", null] }
+            };
+
+            const [visitData, filteredCount, totalVisits, completedVisits, pendingVisits, rescheduledVisits] = await Promise.all([
                 this.visitModel.find(filter)
                     .sort({ createdAt: -1 })
                     .skip(skip)
@@ -122,20 +127,20 @@ export class VisitService {
                     .populate('schoolId', 'schoolName address')
                     .exec(),
                 this.visitModel.countDocuments(filter).exec(),
-                this.visitModel.countDocuments().exec(),
-                this.visitModel.countDocuments({ status: 'completed' }).exec(),
-                this.visitModel.countDocuments({ status: 'pending' }).exec(),
-                this.visitModel.countDocuments({ status: 'rescheduled' }).exec(),
+                this.visitModel.countDocuments(baseFilter).exec(),
+                this.visitModel.countDocuments({ ...baseFilter, status: 'completed' }).exec(),
+                this.visitModel.countDocuments({ ...baseFilter, status: 'pending' }).exec(),
+                this.visitModel.countDocuments({ ...baseFilter, status: 'rescheduled' }).exec(),
             ]);
 
             return {
                 success: true,
                 message: 'Visits fetched successfully',
-                visistData,
-                totalVisist,
-                CompleteVisist,
-                pedingVisist,
-                rescheduledVisist,
+                visitData,
+                totalVisits,
+                completedVisits,
+                pendingVisits,
+                rescheduledVisits,
                 pagination: {
                     total: filteredCount,
                     page,
