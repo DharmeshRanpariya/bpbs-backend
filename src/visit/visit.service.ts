@@ -97,7 +97,10 @@ export class VisitService {
             const limit = Number(queryObj.limit) || 10;
             const skip = (page - 1) * limit;
 
-            const filter: any = {};
+            const filter: any = {
+                userId: { $nin: ["", null] },
+                schoolId: { $nin: ["", null] }
+            };
 
             if (queryObj.status) {
                 filter.status = queryObj.status;
@@ -105,8 +108,9 @@ export class VisitService {
 
             if (queryObj.schoolName) {
                 const schoolResponse = await this.schoolService.findAll({ search: queryObj.schoolName });
-                const matchedSchoolIds = (schoolResponse.data || []).map((school: any) => school._id);
-                filter.schoolId = { $in: matchedSchoolIds };
+                const matchedSchoolIdsStr = (schoolResponse.data || []).map((school: any) => school._id.toString());
+                const matchedSchoolIdsObj = matchedSchoolIdsStr.map(id => new Types.ObjectId(id));
+                filter.schoolId = { $in: [...matchedSchoolIdsStr, ...matchedSchoolIdsObj] };
             }
 
             const [visistData, filteredCount, totalVisist, CompleteVisist, pedingVisist, rescheduledVisist] = await Promise.all([
