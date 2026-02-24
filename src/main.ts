@@ -1,9 +1,4 @@
-import { webcrypto } from 'crypto';
-
-if (!(globalThis as any).crypto) {
-  (globalThis as any).crypto = webcrypto;
-}
-
+import './polyfill';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { MulterExceptionFilter } from './common/filters/multer-exception.filter';
