@@ -56,7 +56,7 @@ export class NotificationScheduler {
                             {
                                 visitId: visit._id.toString(),
                                 schoolId: school._id.toString(),
-                                type: 'VISIT_REMINDER'
+                                type: 'NOTIFICATION'
                             }
                         );
                         this.logger.log(`Notification sent to user ${user.username} for school ${school.schoolName}`);
@@ -69,36 +69,6 @@ export class NotificationScheduler {
             }
         } catch (error) {
             this.logger.error('Error in visit notification cron job:', error);
-        }
-    }
-
-    @Cron(CronExpression.EVERY_5_MINUTES)
-    async dummyCron() {
-        this.logger.debug('Running dummy 5-minute notification cron job');
-
-        try {
-            const users = await this.userModel.find({ fcmToken: { $exists: true, $ne: '' } }).exec();
-            this.logger.debug(`Found ${users.length} users with FCM tokens`);
-
-            for (const user of users) {
-                const title = 'Hi';
-                const body = 'How are you';
-
-                try {
-                    await this.notificationService.sendNotification(
-                        user._id.toString(),
-                        user.fcmToken,
-                        title,
-                        body,
-                        { type: 'DUMMY_NOTIFICATION' }
-                    );
-                    this.logger.log(`Dummy notification sent to user ${user.username}`);
-                } catch (err) {
-                    this.logger.error(`Failed to send dummy notification to user ${user.username}: ${err.message}`);
-                }
-            }
-        } catch (error) {
-            this.logger.error('Error in dummy notification cron job:', error);
         }
     }
 }
