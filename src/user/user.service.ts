@@ -191,8 +191,8 @@ export class UserService {
         return this.userModel.findOne({ username }).exec();
     }
 
-    async updateLastLogin(id: string) {
-        return this.userModel.findByIdAndUpdate(id, { lastLogin: new Date() }).exec();
+    async updateLoginInfo(id: string, updateData: any) {
+        return this.userModel.findByIdAndUpdate(id, updateData).exec();
     }
 
     async toggleStatus(id: string) {

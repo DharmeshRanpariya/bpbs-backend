@@ -25,9 +25,13 @@ export class AuthService {
         return null;
     }
 
-    async login(user: any) {
-        // Update last login
-        await this.userService.updateLastLogin(user._id);
+    async login(user: any, fcmToken?: string) {
+        // Update last login and fcmToken if provided
+        const updateData: any = { lastLogin: new Date() };
+        if (fcmToken) {
+            updateData.fcmToken = fcmToken;
+        }
+        await this.userService.updateLoginInfo(user._id, updateData);
 
         // Auto mark attendance for today
         await this.attendanceService.markAttendance(user._id.toString());

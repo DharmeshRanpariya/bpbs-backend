@@ -37,7 +37,7 @@ export class UserController {
         if (!user) {
             throw new UnauthorizedException('Invalid credentials');
         }
-        return this.authService.login(user);
+        return this.authService.login(user, loginDto.fcmToken);
     }
 
     @Post()
