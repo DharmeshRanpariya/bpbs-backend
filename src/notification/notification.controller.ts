@@ -35,19 +35,6 @@ export class NotificationController {
         };
     }
 
-    @Get('user/:userId')
-    async getByUserId(@Param('userId') userId: string) {
-        const data = await this.notificationModel.find({ userId })
-            .sort({ createdAt: -1 })
-            .exec();
-
-        return {
-            success: true,
-            message: 'Notifications fetched successfully',
-            data
-        };
-    }
-
     @Put('read-all')
     async markAllAsRead(@Request() req) {
         const userId = req.user.userId;

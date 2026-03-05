@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { School } from './entity/school.entity';
@@ -8,22 +8,61 @@ import { Visit } from '../visit/entity/visit.entity';
 import { CreateSchoolDto } from './dto/create-school.dto';
 import { UpdateSchoolDto } from './dto/update-school.dto';
 import { normalizeZone } from '../common/utils/zone-normalization.util';
+import { NotificationService } from '../notification/notification.service';
 
 @Injectable()
 export class SchoolService {
+    private readonly logger = new Logger(SchoolService.name);
     constructor(
         @InjectModel(School.name) private schoolModel: Model<School>,
         @InjectModel(User.name) private userModel: Model<User>,
         @InjectModel(Order.name) private orderModel: Model<Order>,
         @InjectModel(Visit.name) private visitModel: Model<Visit>,
+        private notificationService: NotificationService,
     ) { }
 
     async create(createSchoolDto: CreateSchoolDto) {
+        const normalizedZone = normalizeZone(createSchoolDto.zone);
         const newSchool = new this.schoolModel({
             ...createSchoolDto,
-            zone: normalizeZone(createSchoolDto.zone),
+            zone: normalizedZone,
         });
         const data = await newSchool.save();
+
+        if (normalizedZone) {
+            const users = await this.userModel.find({ assignedZone: normalizedZone }).exec();
+            if (users.length > 0) {
+                // Create visits for all users in this zone
+                const visits = users.map(user => ({
+                    userId: user._id,
+                    schoolId: data._id,
+                    scheduleDate: new Date(),
+                    status: 'pending'
+                }));
+                await this.visitModel.insertMany(visits);
+
+                // Send notifications
+                for (const user of users) {
+                    if (user.fcmToken) {
+                        try {
+                            await this.notificationService.sendNotification(
+                                user._id.toString(),
+                                user.fcmToken,
+                                'School Allocated',
+                                `New school ${data.schoolName} has been allocated to you.`,
+                                {
+                                    schoolId: data._id.toString(),
+                                    type: 'SCHOOL_ALLOCATED'
+                                }
+                            );
+                        } catch (err) {
+                            this.logger.error(`Failed to send school allocation notification to user ${user.username}: ${err.message}`);
+                        }
+                    }
+                }
+            }
+        }
+
         return {
             success: true,
             message: 'School created successfully',

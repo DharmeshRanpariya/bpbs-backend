@@ -7,6 +7,8 @@ import { User, UserSchema } from '../user/entity/user.entity';
 import { Order, OrderSchema } from '../order/entity/order.entity';
 import { Visit, VisitSchema } from '../visit/entity/visit.entity';
 
+import { NotificationModule } from '../notification/notification.module';
+
 @Module({
     imports: [
         MongooseModule.forFeature([
@@ -15,6 +17,7 @@ import { Visit, VisitSchema } from '../visit/entity/visit.entity';
             { name: Order.name, schema: OrderSchema },
             { name: Visit.name, schema: VisitSchema },
         ]),
+        NotificationModule,
     ],
     controllers: [SchoolController],
     providers: [SchoolService],

@@ -118,4 +118,10 @@ export class UserController {
     async getList() {
         return this.userService.getUserList();
     }
+
+    @Post('logout')
+    @UseGuards(JwtAuthGuard)
+    async logout(@Request() req) {
+        return this.userService.logout(req.user.userId);
+    }
 }

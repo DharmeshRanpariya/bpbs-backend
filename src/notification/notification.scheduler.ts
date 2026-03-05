@@ -45,7 +45,7 @@ export class NotificationScheduler {
 
                 if (user && user.fcmToken) {
                     const title = 'Visit Reminder';
-                    const body = `Aje tamare ${school.schoolName} ma visit che.`;
+                    const body = `You have a scheduled visit at ${school.schoolName} today.`;
 
                     try {
                         await this.notificationService.sendNotification(
@@ -56,7 +56,7 @@ export class NotificationScheduler {
                             {
                                 visitId: visit._id.toString(),
                                 schoolId: school._id.toString(),
-                                type: 'NOTIFICATION'
+                                type: 'VISIT_REMINDER'
                             }
                         );
                         this.logger.log(`Notification sent to user ${user.username} for school ${school.schoolName}`);

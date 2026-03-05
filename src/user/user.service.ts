@@ -277,4 +277,21 @@ export class UserService {
             data,
         };
     }
+
+    async logout(userId: string) {
+        const data = await this.userModel.findByIdAndUpdate(
+            userId,
+            { $unset: { fcmToken: 1 } },
+            { new: true },
+        ).exec();
+
+        if (!data) {
+            throw new NotFoundException(`User with ID ${userId} not found`);
+        }
+
+        return {
+            success: true,
+            message: 'User logged out successfully and FCM token removed',
+        };
+    }
 }

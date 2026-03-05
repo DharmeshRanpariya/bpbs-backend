@@ -6,13 +6,19 @@ import { CreateVisitDto } from './dto/create-visit.dto';
 import { UpdateVisitDto } from './dto/update-visit.dto';
 import { SchoolService } from '../school/school.service';
 import { OrderService } from '../order/order.service';
+import { NotificationService } from '../notification/notification.service';
+import { User } from '../user/entity/user.entity';
+import { School } from '../school/entity/school.entity';
 
 @Injectable()
 export class VisitService {
     constructor(
         @InjectModel(Visit.name) private visitModel: Model<Visit>,
+        @InjectModel(User.name) private userModel: Model<User>,
+        @InjectModel(School.name) private schoolModel: Model<School>,
         private readonly schoolService: SchoolService,
-        private readonly orderService: OrderService
+        private readonly orderService: OrderService,
+        private readonly notificationService: NotificationService
     ) { }
 
     private calculateStatus(visitDetails: any[]) {
@@ -77,6 +83,30 @@ export class VisitService {
             });
 
             const data = await newVisit.save();
+
+            // Send notification to the user about new visit allocation
+            try {
+                const user = await this.userModel.findById(createVisitDto.userId).exec();
+                const school = await this.schoolModel.findById(createVisitDto.schoolId).exec();
+
+                if (user && user.fcmToken && school) {
+                    await this.notificationService.sendNotification(
+                        user._id.toString(),
+                        user.fcmToken,
+                        'New Visit Assigned',
+                        `A new visit for ${school.schoolName} has been assigned to you.`,
+                        {
+                            visitId: data._id.toString(),
+                            schoolId: school._id.toString(),
+                            type: 'VISIT_ASSIGNED'
+                        }
+                    );
+                }
+            } catch (notificationError) {
+                // Silently log notification error as it shouldn't break visit creation
+                console.error('Failed to send notification for new visit:', notificationError.message);
+            }
+
             return {
                 success: true,
                 message: 'Visit created successfully',
