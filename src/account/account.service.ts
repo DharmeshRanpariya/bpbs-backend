@@ -37,6 +37,8 @@ export class AccountService {
                 };
             });
 
+        await this.accountModel.deleteMany({ schoolId: new Types.ObjectId(schoolId) }).exec();
+
         return this.accountModel.insertMany(accounts) as any;
     }
 
