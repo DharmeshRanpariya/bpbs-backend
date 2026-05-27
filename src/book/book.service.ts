@@ -1,13 +1,17 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { Book } from './entity/book.entity';
 import { CreateBookDto } from './dto/create-book.dto';
 import { UpdateBookDto } from './dto/update-book.dto';
+import { Order } from '../order/entity/order.entity';
 
 @Injectable()
 export class BookService {
-    constructor(@InjectModel(Book.name) private bookModel: Model<Book>) { }
+    constructor(
+        @InjectModel(Book.name) private bookModel: Model<Book>,
+        @InjectModel(Order.name) private orderModel: Model<Order>
+    ) { }
 
     async create(createBookDto: CreateBookDto, coverImagePath?: string, pdfPath?: string) {
         const newBook = new this.bookModel({
@@ -65,10 +69,23 @@ export class BookService {
     }
 
     async remove(id: string) {
-        const data = await this.bookModel.findByIdAndDelete(id).exec();
-        if (!data) {
+        const book = await this.bookModel.findById(id).exec();
+        if (!book) {
             throw new NotFoundException(`Book with ID ${id} not found`);
         }
+
+        const relatedOrders = await this.orderModel.find({
+            'orderItems.books.bookId': new Types.ObjectId(id)
+        }).exec();
+
+        if (relatedOrders.length > 0) {
+            const hasNonCompletedOrder = relatedOrders.some(order => order.status !== 'Completed');
+            if (hasNonCompletedOrder) {
+                throw new BadRequestException('Cannot delete book because it is part of an order that is not completed.');
+            }
+        }
+
+        const data = await this.bookModel.findByIdAndDelete(id).exec();
         return {
             success: true,
             message: 'Book deleted successfully',
