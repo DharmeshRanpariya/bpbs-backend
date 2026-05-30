@@ -20,6 +20,7 @@ async function bootstrap() {
     origin: [
       'https://admin.bpbs.in',
       'http://localhost:3000',
+      'https://api.bpbs.in'
     ],
     credentials: true,
   });
