@@ -34,6 +34,12 @@ export class AccountController {
         return this.accountService.createBulk(file, schoolId);
     }
 
+    @Get()
+    @ApiOperation({ summary: 'Get all account entries' })
+    findAll() {
+        return this.accountService.findAll();
+    }
+
     @Get(':schoolId')
     @ApiOperation({ summary: 'Get all account entries for a school' })
     findAllBySchool(@Param('schoolId') schoolId: string) {

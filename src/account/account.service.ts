@@ -42,6 +42,10 @@ export class AccountService {
         return this.accountModel.insertMany(accounts) as any;
     }
 
+    async findAll(): Promise<Account[]> {
+        return this.accountModel.find().sort({ stNo: 1 }).exec();
+    }
+
     async findAllBySchool(schoolId: string): Promise<Account[]> {
         return this.accountModel.find({ schoolId: new Types.ObjectId(schoolId) }).sort({ stNo: 1 }).exec();
     }
